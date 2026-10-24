@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<title>Butcher Room Monitor</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Roboto:wght@300;400;500&display=swap">
+
+<style>
+:root {
+  --bg:        #0d1520;
+  --bg-card:   #162030;
+  --bg-header: #0a1018;
+  --border:    #1e3352;
+  --accent:    #8b1a1a;
+  --accent-h:  #6f1515;
+  --text:      #dde4ef;
+  --text-dim:  #5a7090;
+  --ok:        #16a34a;
+  --warn:      #c47f0a;
+  --alert:     #dc2626;
+  --fan:       #0ea5e9;
+  color-scheme: dark;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Roboto', system-ui, sans-serif;
+  min-height: 100vh;
+  padding-left:  max(16px, env(safe-area-inset-left,  0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0;
+}
+
+body::before {
+  content:''; position:fixed; inset:0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  background: var(--bg-header); z-index:11;
+}
+
+/* ═══════════════════════════════════════
+   LOGIN
+═══════════════════════════════════════ */
+#login-screen {
+  min-height:100vh; display:flex;
+  align-items:center; justify-content:center;
+  padding:24px;
+}
+
+.login-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--accent);
+  border-radius: 4px;
+  padding: 40px 36px;
+  width:100%; max-width:400px;
+  text-align:center;
+}
+
+.login-mark { margin-bottom:20px; }
+
+.login-title {
+  font-family:'Oswald',sans-serif;
+  font-size:1.9rem; font-weight:700;
+  letter-spacing:.06em; color:var(--text);
+  margin-bottom:2px;
+}
+
+.login-sub {
+  font-size:.72rem; color:var(--text-dim);
+  letter-spacing:.2em; text-transform:uppercase;
+  margin-bottom:28px;
+}
+
+.gear-row { display:flex; justify-content:center; gap:6px; align-items:center; margin-bottom:28px; }
+.gear-row span { color:var(--border); font-size:1rem; }
+.gear-row .line { flex:1; max-width:60px; height:1px; background:var(--border); }
+
+.form-group { margin-bottom:16px; text-align:left; }
+.form-group label {
+  display:block; font-size:.72rem; font-weight:500;
+  letter-spacing:.12em; text-transform:uppercase;
+  color:var(--text-dim); margin-bottom:6px;
+}
+.form-group input {
+  width:100%; background:#080e18;
+  border:1px solid var(--border); border-radius:3px;
+  padding:11px 14px; color:var(--text);
+  font-size:.95rem; font-family:inherit; outline:none;
+  transition:border-color .2s;
+}
+.form-group input:focus { border-color:var(--accent); }
+
+.btn-primary {
+  width:100%; background:var(--accent); border:none; border-radius:3px;
+  color:#fff; font-family:'Oswald',sans-serif; font-size:1rem;
+  font-weight:600; letter-spacing:.12em; text-transform:uppercase;
+  padding:13px; cursor:pointer; margin-top:8px;
+  transition:background .15s;
+}
+.btn-primary:hover { background:var(--accent-h); }
+
+#login-error {
+  color:var(--alert); font-size:.82rem; margin-top:12px; min-height:18px;
+}
+
+/* ═══════════════════════════════════════
+   APP SHELL
+═══════════════════════════════════════ */
+#app { display:none; padding-bottom:56px; }
+
+.app-header {
+  background: var(--bg-header);
+  border-bottom: 2px solid var(--accent);
+  padding: 0 max(16px, env(safe-area-inset-left, 0px));
+  display:flex; align-items:center; gap:14px; height:58px;
+  position:sticky; top:env(safe-area-inset-top, 0px); z-index:10;
+}
+
+.header-logo { width:34px; height:34px; flex-shrink:0; }
+
+.header-title {
+  font-family:'Oswald',sans-serif; font-size:1.1rem;
+  font-weight:700; letter-spacing:.08em; flex:1;
+}
+
+.header-status { text-align:right; }
+.header-status .lbl {
+  font-size:.72rem; letter-spacing:.06em; font-weight:600;
+}
+.header-status .ts { font-size:.65rem; color:var(--text-dim); }
+.col-ok    { color:var(--ok);   }
+.col-warn  { color:var(--warn); }
+.col-alert { color:var(--alert);}
+
+.btn-logout {
+  background:none; border:1px solid var(--border); border-radius:3px;
+  color:var(--text-dim); font-size:.72rem; padding:5px 10px; cursor:pointer;
+  font-family:inherit; transition:color .15s;
+  flex-shrink:0;
+}
+.btn-logout:hover { color:var(--text); }
+
+/* ═══════════════════════════════════════
+   DASHBOARD
+═══════════════════════════════════════ */
+.dashboard {
+  padding: 16px max(16px, env(safe-area-inset-left, 0px));
+  padding-bottom: 0;
+}
+
+.section-label {
+  font-family:'Oswald',sans-serif; font-size:.68rem; font-weight:600;
+  letter-spacing:.2em; text-transform:uppercase; color:var(--text-dim);
+  margin: 24px 0 10px; display:flex; align-items:center; gap:10px;
+}
+.section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+.units-grid {
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap:10px;
+}
+
+/* ═══════════════════════════════════════
+   UNIT CARD
+═══════════════════════════════════════ */
+.unit-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--ok);
+  border-radius: 3px;
+  padding: 16px 18px;
+}
+.unit-card.s-warn    { border-left-color: var(--warn);  }
+.unit-card.s-alert   { border-left-color: var(--alert); }
+.unit-card.s-offline { border-left-color: var(--text-dim); }
+
+.unit-name {
+  font-family:'Oswald',sans-serif; font-size:.78rem; font-weight:600;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--text-dim);
+  margin-bottom:6px;
+}
+
+.unit-temp {
+  font-family:'Oswald',sans-serif; font-size:3rem; font-weight:700;
+  line-height:1; color:var(--ok); margin-bottom:3px;
+}
+.unit-temp sup { font-size:1.4rem; font-weight:400; vertical-align:super; }
+.unit-card.s-warn    .unit-temp { color:var(--warn);     }
+.unit-card.s-alert   .unit-temp { color:var(--alert);    }
+.unit-card.s-offline .unit-temp { color:var(--text-dim); }
+
+.unit-target { font-size:.72rem; color:var(--text-dim); margin-bottom:10px; }
+
+.badge-row { display:flex; gap:6px; flex-wrap:wrap; }
+
+.badge {
+  font-size:.62rem; font-weight:700; letter-spacing:.1em;
+  text-transform:uppercase; padding:3px 7px; border-radius:2px;
+}
+.b-ok     { background:#14532d33; color:#4ade80; border:1px solid #16532d; }
+.b-warn   { background:#451a0333; color:#fbbf24; border:1px solid #78350f; }
+.b-alert  { background:#450a0a33; color:#f87171; border:1px solid #7f1d1d; }
+.b-off    { background:#1e293b;   color:#64748b; border:1px solid #2d3d52; }
+.b-fan    { background:#0c254033; color:#38bdf8; border:1px solid #0c4a6e; }
+.b-nofan  { background:#1e293b;   color:#475569; border:1px solid #2d3d52; }
+
+.unit-minmax { font-size:.68rem; color:var(--text-dim); margin-top:10px; }
+
+/* ═══════════════════════════════════════
+   SYNC BAR
+═══════════════════════════════════════ */
+.sync-bar {
+  position:fixed; bottom:0; left:0; right:0;
+  background:var(--bg-header); border-top:1px solid var(--border);
+  padding: 7px max(16px, env(safe-area-inset-left, 0px));
+  font-size:.68rem; color:var(--text-dim);
+  display:flex; justify-content:space-between; align-items:center;
+  z-index:10;
+}
+.sync-dot {
+  display:inline-block; width:7px; height:7px;
+  border-radius:50%; background:var(--ok); margin-right:7px;
+  vertical-align:middle;
+}
+.sync-dot.demo { background:var(--warn); }
+
+/* ═══════════════════════════════════════
+   PI VIEW  (320 × 480)
+═══════════════════════════════════════ */
+#pi-view { display:none; }
+
+body.pi-mode { padding:0; }
+body.pi-mode #login-screen,
+body.pi-mode #app { display:none !important; }
+body.pi-mode #pi-view {
+  display:block; width:100vw; height:100vh; overflow:hidden;
+  background:var(--bg);
+}
+
+.pi-grid {
+  display:grid; grid-template-rows: repeat(6,1fr);
+  height:100%; gap:2px; padding:3px;
+}
+
+.pi-card {
+  background:var(--bg-card); border-left:4px solid var(--ok);
+  display:flex; align-items:center; padding:0 10px; gap:10px;
+  min-width:0;
+}
+.pi-card.s-warn  { border-left-color:var(--warn);  }
+.pi-card.s-alert { border-left-color:var(--alert); }
+
+.pi-name {
+  font-family:'Oswald',sans-serif; font-size:.82rem; font-weight:600;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--text-dim);
+  width:96px; flex-shrink:0; line-height:1.1;
+}
+
+.pi-temp {
+  font-family:'Oswald',sans-serif; font-size:2.2rem; font-weight:700;
+  color:var(--ok); flex:1; line-height:1;
+}
+.pi-card.s-warn  .pi-temp { color:var(--warn);  }
+.pi-card.s-alert .pi-temp { color:var(--alert); }
+
+.pi-badges { display:flex; flex-direction:column; gap:3px; }
+.pi-badge {
+  font-size:.55rem; font-weight:700; letter-spacing:.1em;
+  text-transform:uppercase; padding:2px 5px; border-radius:2px;
+}
+
+.pi-header {
+  background:var(--bg-header); border-bottom:2px solid var(--accent);
+  padding:3px 10px; display:flex; align-items:center;
+  justify-content:space-between; height:26px; flex-shrink:0;
+}
+.pi-header-title {
+  font-family:'Oswald',sans-serif; font-size:.72rem; font-weight:700;
+  letter-spacing:.12em; color:var(--text);
+}
+.pi-header-time { font-size:.62rem; color:var(--text-dim); }
+
+body.pi-mode #pi-view {
+  display:flex; flex-direction:column;
+}
+.pi-main { flex:1; overflow:hidden; padding:3px; display:grid;
+  grid-template-rows:repeat(6,1fr); gap:2px; }
+</style>
+
+<!-- ─── PI VIEW ──────────────────────────────── -->
+<div id="pi-view">
+  <div class="pi-header">
+    <span class="pi-header-title">⚙ BUTCHER ROOM MONITOR</span>
+    <span class="pi-header-time" id="pi-time">--:--</span>
+  </div>
+  <div class="pi-main" id="pi-grid"></div>
+</div>
+
+<!-- ─── LOGIN ───────────────────────────────── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-mark">
+      <!-- Logo mark — cleaver over monitor, chain ring -->
+      <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- chain ring -->
+        <circle cx="40" cy="40" r="36" stroke="#1e3352" stroke-width="2.5" stroke-dasharray="7 3.5"/>
+        <!-- monitor body -->
+        <rect x="16" y="26" width="48" height="30" rx="2.5" fill="#162030" stroke="#2a4a70" stroke-width="1.5"/>
+        <rect x="20" y="30" width="40" height="21" rx="1" fill="#0d1520"/>
+        <!-- ecg / graph line -->
+        <polyline points="22,42 27,42 30,35 33,48 36,38 39,38 42,34 45,42 48,42 52,38 55,42 58,42"
+                  stroke="#8b1a1a" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- stand -->
+        <rect x="36" y="56" width="8" height="4" rx="0" fill="#162030"/>
+        <rect x="30" y="60" width="20" height="2.5" rx="1.2" fill="#2a4a70"/>
+        <!-- cleaver blade -->
+        <rect x="34" y="8" width="34" height="20" rx="3"
+              transform="rotate(-18 51 18)" fill="#3a5a80" stroke="#5a7aa0" stroke-width="1.2"/>
+        <!-- cleaver bevel line -->
+        <line x1="38" y1="16" x2="64" y2="9" stroke="#6a8ab0" stroke-width="0.8" opacity="0.6"/>
+        <!-- cleaver handle -->
+        <rect x="60" y="6" width="14" height="9" rx="2.5"
+              transform="rotate(-18 67 10.5)" fill="#5a3820" stroke="#7a5040" stroke-width="1"/>
+        <!-- rivets on handle -->
+        <circle cx="63" cy="10" r="1.2" fill="#8a7060" transform="rotate(-18 63 10)"/>
+        <circle cx="68" cy="8.5" r="1.2" fill="#8a7060" transform="rotate(-18 68 8.5)"/>
+        <!-- gear left -->
+        <circle cx="14" cy="66" r="5" stroke="#1e3352" stroke-width="1.5" fill="none"/>
+        <circle cx="14" cy="66" r="2" fill="#1e3352"/>
+        <!-- gear right -->
+        <circle cx="66" cy="66" r="5" stroke="#1e3352" stroke-width="1.5" fill="none"/>
+        <circle cx="66" cy="66" r="2" fill="#1e3352"/>
+      </svg>
+    </div>
+    <div class="login-title">BUTCHER ROOM</div>
+    <div class="login-sub">Monitor</div>
+    <div class="gear-row">
+      <div class="line"></div>
+      <span>⚙</span><span>⚙</span>
+      <div class="line"></div>
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="your@email.com" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-primary" id="btn-signin">SIGN IN</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<!-- ─── MAIN APP ─────────────────────────────── -->
+<div id="app">
+
+  <header class="app-header">
+    <!-- small logo in header -->
+    <svg class="header-logo" viewBox="0 0 40 40" fill="none">
+      <circle cx="20" cy="20" r="18" stroke="#1e3352" stroke-width="1.5" stroke-dasharray="5 2.5"/>
+      <rect x="8" y="13" width="24" height="15" rx="1.5" fill="#162030" stroke="#2a4a70" stroke-width="1"/>
+      <rect x="10" y="15" width="20" height="10" rx=".5" fill="#0d1520"/>
+      <polyline points="11,21 13.5,21 15,17.5 16.5,24 18,19.5 19.5,19.5 21,17 23,21 25,21 27,19 29,21"
+                stroke="#8b1a1a" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="18" y="28" width="4" height="2.5" fill="#162030"/>
+      <rect x="15" y="30.5" width="10" height="1.5" rx=".75" fill="#2a4a70"/>
+      <rect x="17" y="4" width="17" height="10" rx="1.5" transform="rotate(-18 25.5 9)" fill="#3a5a80" stroke="#5a7aa0" stroke-width=".8"/>
+      <rect x="30" y="3" width="7" height="5" rx="1.5" transform="rotate(-18 33.5 5.5)" fill="#5a3820"/>
+    </svg>
+    <div class="header-title">BUTCHER ROOM MONITOR</div>
+    <div class="header-status">
+      <div class="lbl" id="h-status-lbl"><span class="col-ok">● All OK</span></div>
+      <div class="ts" id="h-status-ts">--:--</div>
+    </div>
+    <button class="btn-logout" id="btn-logout">Sign Out</button>
+  </header>
+
+  <div class="dashboard">
+    <div class="section-label">Fridges</div>
+    <div class="units-grid" id="grid-fridges"></div>
+    <div class="section-label">Freezers</div>
+    <div class="units-grid" id="grid-freezers"></div>
+    <div class="section-label">Work Areas</div>
+    <div class="units-grid" id="grid-areas"></div>
+  </div>
+
+  <div class="sync-bar">
+    <span><span class="sync-dot" id="sync-dot"></span><span id="sync-mode">Connecting…</span></span>
+    <span id="sync-ts"></span>
+  </div>
+
+</div><!-- #app -->
+
+<script type="module">
+/* ═══════════════════════════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════════════════════════ */
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyDlfwncB_xMqjqZdcOcevAQo5tQ2X2AF94",
+  authDomain:        "butcher-room-monitor.firebaseapp.com",
+  projectId:         "butcher-room-monitor",
+  storageBucket:     "butcher-room-monitor.firebasestorage.app",
+  messagingSenderId: "461248344425",
+  appId:             "1:461248344425:web:a8af27fb4c84405fc90df8"
+};
+
+/* ═══════════════════════════════════════════════════════════
+   UNIT DEFINITIONS
+═══════════════════════════════════════════════════════════ */
+const UNITS = [
+  { id:'fridge1',  name:'Fridge 1',      section:'fridges',  minOk:1,   maxOk:5,   simBase: 3.2,  fan:true  },
+  { id:'fridge2',  name:'Fridge 2',      section:'fridges',  minOk:1,   maxOk:5,   simBase: 2.9,  fan:true  },
+  { id:'fridge3',  name:'Fridge 3',      section:'fridges',  minOk:1,   maxOk:5,   simBase: 3.6,  fan:true  },
+  { id:'freezer1', name:'Freezer 1',     section:'freezers', minOk:-23, maxOk:-16, simBase:-19.5, fan:false },
+  { id:'freezer2', name:'Freezer 2',     section:'freezers', minOk:-23, maxOk:-16, simBase:-20.1, fan:false },
+  { id:'butcher',  name:'Butcher Room',  section:'areas',    minOk:3,   maxOk:8,   simBase: 5.8,  fan:false },
+];
+
+/* ═══════════════════════════════════════════════════════════
+   SIMULATED STATE
+═══════════════════════════════════════════════════════════ */
+const sim = {};
+UNITS.forEach(u => {
+  const t = u.simBase + (Math.random()-.5)*.6;
+  sim[u.id] = { temp:t, fan:u.fan?true:undefined, min:t-.3, max:t+.3, ts:new Date() };
+});
+
+function simTick() {
+  UNITS.forEach(u => {
+    const s = sim[u.id];
+    s.temp += (Math.random()-.47)*.25;
+    const lo = u.simBase-1.8, hi = u.simBase+1.8;
+    if (s.temp < lo) s.temp = lo + Math.random()*.3;
+    if (s.temp > hi) s.temp = hi - Math.random()*.3;
+    s.min = Math.min(s.min, s.temp);
+    s.max = Math.max(s.max, s.temp);
+    s.ts  = new Date();
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════════ */
+function status(temp, u) {
+  if (temp==null) return 'offline';
+  if (temp < u.minOk-4 || temp > u.maxOk+4) return 'alert';
+  if (temp < u.minOk   || temp > u.maxOk)   return 'warn';
+  return 'ok';
+}
+
+function fmtT(v) {
+  if (v==null) return '---';
+  return (v>=0?'+':'')+v.toFixed(1);
+}
+
+function fmtClock(d) {
+  return d ? d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RENDER — DASHBOARD CARD
+═══════════════════════════════════════════════════════════ */
+function cardHTML(u, d) {
+  const s   = status(d?.temp, u);
+  const lbl = {ok:'OK',warn:'WARM',alert:'ALERT',offline:'OFFLINE'}[s];
+  const bc  = {ok:'b-ok',warn:'b-warn',alert:'b-alert',offline:'b-off'}[s];
+  const rng = u.minOk<0 ? `${u.minOk}°C to ${u.maxOk}°C` : `+${u.minOk}°C to +${u.maxOk}°C`;
+  const fanBadge = u.fan
+    ? `<span class="badge ${d?.fan?'b-fan':'b-nofan'}">${d?.fan?'⬢ FAN ON':'⬡ FAN OFF'}</span>` : '';
+  const mm = d ? `<div class="unit-minmax">Today  Low ${fmtT(d.min)}°  ·  High ${fmtT(d.max)}°</div>` : '';
+  return `
+<div class="unit-card s-${s}">
+  <div class="unit-name">${u.name}</div>
+  <div class="unit-temp">${fmtT(d?.temp)}<sup>°C</sup></div>
+  <div class="unit-target">Target ${rng}</div>
+  <div class="badge-row">
+    <span class="badge ${bc}">${lbl}</span>${fanBadge}
+  </div>${mm}
+</div>`;
+}
+
+function renderDash() {
+  ['fridges','freezers','areas'].forEach(sec => {
+    const el = document.getElementById('grid-'+sec);
+    if (el) el.innerHTML = UNITS.filter(u=>u.section===sec).map(u=>cardHTML(u,sim[u.id])).join('');
+  });
+  const alerts = UNITS.filter(u=>status(sim[u.id]?.temp,u)==='alert').length;
+  const warns  = UNITS.filter(u=>status(sim[u.id]?.temp,u)==='warn').length;
+  const lbl = document.getElementById('h-status-lbl');
+  if (lbl) {
+    if (alerts) lbl.innerHTML = `<span class="col-alert">⚠ ${alerts} ALERT${alerts>1?'S':''}</span>`;
+    else if (warns) lbl.innerHTML = `<span class="col-warn">⚠ ${warns} WARNING${warns>1?'S':''}</span>`;
+    else lbl.innerHTML = `<span class="col-ok">● All OK</span>`;
+  }
+  const ts = document.getElementById('h-status-ts');
+  if (ts) ts.textContent = fmtClock(new Date());
+  const st = document.getElementById('sync-ts');
+  if (st) st.textContent = fmtClock(new Date());
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RENDER — PI VIEW
+═══════════════════════════════════════════════════════════ */
+function renderPi() {
+  const grid = document.getElementById('pi-grid');
+  if (!grid) return;
+  grid.innerHTML = UNITS.map(u => {
+    const d = sim[u.id];
+    const s = status(d?.temp, u);
+    const bc = {ok:'b-ok',warn:'b-warn',alert:'b-alert',offline:'b-off'}[s];
+    const lbl = {ok:'OK',warn:'WARM',alert:'ALERT',offline:'OFFLINE'}[s];
+    const fanBadge = u.fan
+      ? `<span class="pi-badge ${d?.fan?'b-fan':'b-nofan'}">${d?.fan?'FAN ●':'FAN ○'}</span>` : '';
+    return `
+<div class="pi-card s-${s}">
+  <div class="pi-name">${u.name}</div>
+  <div class="pi-temp">${fmtT(d?.temp)}°</div>
+  <div class="pi-badges">
+    <span class="pi-badge ${bc}">${lbl}</span>${fanBadge}
+  </div>
+</div>`;
+  }).join('');
+  const pt = document.getElementById('pi-time');
+  if (pt) pt.textContent = fmtClock(new Date());
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PI MODE — no login, auto-refresh
+═══════════════════════════════════════════════════════════ */
+const params = new URLSearchParams(location.search);
+const IS_PI  = params.get('display') === 'pi';
+
+if (IS_PI) {
+  document.body.classList.add('pi-mode');
+  renderPi();
+  setInterval(() => { simTick(); renderPi(); }, 30000);
+
+} else {
+  /* ═══════════════════════════════════════════════════════
+     FIREBASE INIT
+  ═══════════════════════════════════════════════════════ */
+  (async () => {
+    try {
+      const [{ initializeApp }, { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut },
+             { getFirestore, collection, onSnapshot }] = await Promise.all([
+        import("https://cdn.jsdelivr.net/npm/firebase@10.7.1/app/+esm"),
+        import("https://cdn.jsdelivr.net/npm/firebase@10.7.1/auth/+esm"),
+        import("https://cdn.jsdelivr.net/npm/firebase@10.7.1/firestore/+esm"),
+      ]);
+
+      const app  = initializeApp(FIREBASE_CONFIG);
+      const auth = getAuth(app);
+      const db   = getFirestore(app);
+
+      /* sign-in */
+      function doSignIn() {
+        const email = document.getElementById('login-email').value.trim();
+        const pass  = document.getElementById('login-password').value;
+        const err   = document.getElementById('login-error');
+        err.textContent = '';
+        signInWithEmailAndPassword(auth, email, pass)
+          .catch(() => { err.textContent = 'Incorrect email or password.'; });
+      }
+      document.getElementById('btn-signin').addEventListener('click', doSignIn);
+      document.getElementById('login-password').addEventListener('keydown', e => {
+        if (e.key==='Enter') doSignIn();
+      });
+      document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
+
+      /* auth state */
+      onAuthStateChanged(auth, user => {
+        if (user) {
+          document.getElementById('login-screen').style.display = 'none';
+          document.getElementById('app').style.display = 'block';
+          renderDash();
+          startLiveData();
+        } else {
+          document.getElementById('login-screen').style.display = 'flex';
+          document.getElementById('app').style.display = 'none';
+        }
+      });
+
+      /* live Firestore listener */
+      function startLiveData() {
+        try {
+          onSnapshot(collection(db, 'units'), snap => {
+            snap.forEach(d => {
+              if (!sim[d.id]) return;
+              const x = d.data();
+              sim[d.id] = {
+                temp: x.temperature   ?? sim[d.id].temp,
+                fan:  x.fanOn         ?? sim[d.id].fan,
+                min:  x.minToday      ?? sim[d.id].min,
+                max:  x.maxToday      ?? sim[d.id].max,
+                ts:   x.updatedAt?.toDate() ?? new Date(),
+              };
+            });
+            renderDash();
+            const sd = document.getElementById('sync-dot');
+            const sm = document.getElementById('sync-mode');
+            if (sd) sd.classList.remove('demo');
+            if (sm) sm.textContent = 'Live — Firebase';
+          });
+        } catch(e) {
+          fallbackSim();
+        }
+        /* sim ticks as backup until real sensors arrive */
+        setInterval(() => { simTick(); renderDash(); }, 30000);
+      }
+
+    } catch(e) {
+      /* Firebase blocked (artifact preview CSP) — demo mode */
+      fallbackSim();
+    }
+  })();
+
+  function fallbackSim() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('btn-logout').style.display = 'none';
+    const sd = document.getElementById('sync-dot');
+    const sm = document.getElementById('sync-mode');
+    if (sd) sd.classList.add('demo');
+    if (sm) sm.textContent = 'Demo mode — simulated data';
+    renderDash();
+    setInterval(() => { simTick(); renderDash(); }, 30000);
+  }
+}
+</script>
