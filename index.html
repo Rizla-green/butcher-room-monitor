@@ -239,6 +239,51 @@ body::before {
 .tab-placeholder .ph-icon { font-size:3rem; margin-bottom:12px; }
 .tab-placeholder .ph-text { font-size:.85rem; line-height:1.5; }
 
+/* ── SETTINGS ── */
+.settings-wrap { padding:12px max(12px,env(safe-area-inset-left,0px)) 40px; display:flex; flex-direction:column; gap:10px; }
+.settings-header-row { display:flex; align-items:center; justify-content:space-between; padding:2px 0 4px; }
+.settings-title { font-family:'Oswald',sans-serif; font-size:1.1rem; font-weight:600; letter-spacing:.08em; color:var(--text); }
+.settings-status { font-size:.72rem; color:var(--ok); }
+.scard { background:var(--bg-card); border:1px solid var(--border); border-radius:4px; padding:12px 14px; }
+.scard-label { font-size:.6rem; font-weight:700; letter-spacing:.14em; color:var(--text-dim); text-transform:uppercase; margin-bottom:10px; }
+.srow-label { font-size:.78rem; color:var(--text-dim); flex:1; }
+.scard-row { display:flex; align-items:center; gap:10px; padding:4px 0; }
+.cfg-num { width:60px; background:var(--bg); border:1px solid var(--border); border-radius:3px; color:var(--text); font-size:.9rem; text-align:center; padding:4px 6px; }
+.cfg-unit { font-size:.72rem; color:var(--text-dim); }
+.cfg-zero { font-size:.65rem; color:var(--text-dim); }
+/* Unit accordions */
+.unit-acc { background:var(--bg-card); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+.unit-acc-head { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; cursor:pointer; user-select:none; }
+.unit-acc-name { font-family:'Oswald',sans-serif; font-size:.95rem; font-weight:600; letter-spacing:.06em; color:var(--text); }
+.unit-acc-summary { font-size:.68rem; color:var(--text-dim); }
+.unit-acc-chevron { font-size:.8rem; color:var(--text-dim); transition:transform .15s; }
+.unit-acc.open .unit-acc-chevron { transform:rotate(180deg); }
+.unit-acc-body { display:none; padding:0 14px 14px; border-top:1px solid var(--border); }
+.unit-acc.open .unit-acc-body { display:block; }
+.urow { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--border); }
+.urow:last-child { border-bottom:none; }
+.urow-label { font-size:.72rem; color:var(--text-dim); width:110px; flex-shrink:0; }
+.urow-val { flex:1; }
+.cfg-mode { display:flex; gap:4px; flex-wrap:wrap; }
+.cfg-mode button { font-size:.68rem; font-weight:600; letter-spacing:.06em; padding:3px 9px; border-radius:3px; border:1px solid var(--border); background:var(--bg); color:var(--text-dim); cursor:pointer; }
+.cfg-mode button.active { background:var(--accent); border-color:var(--accent); color:var(--text); }
+/* Fan fixed slots */
+.fan-slots { display:flex; flex-direction:column; gap:4px; margin-top:2px; }
+.fan-slot { display:flex; align-items:center; gap:6px; background:var(--bg); border:1px solid var(--border); border-radius:3px; padding:4px 8px; }
+.fan-slot-time { display:flex; align-items:center; gap:4px; }
+.slot-num { font-size:.68rem; color:var(--text-dim); width:28px; }
+.slot-input { width:38px; background:transparent; border:none; border-bottom:1px solid var(--border); color:var(--text); font-size:.85rem; text-align:center; padding:2px 0; }
+.slot-sep { color:var(--text-dim); font-size:.85rem; }
+.slot-dur-label { font-size:.68rem; color:var(--text-dim); margin-left:8px; }
+.slot-dur { width:38px; background:transparent; border:none; border-bottom:1px solid var(--border); color:var(--text); font-size:.85rem; text-align:center; padding:2px 0; }
+.slot-del { margin-left:auto; background:var(--bg-header); border:1px solid var(--border); color:var(--text-dim); border-radius:3px; cursor:pointer; font-size:.75rem; padding:2px 6px; }
+.slot-add { margin-top:4px; background:var(--bg); border:1px dashed var(--border); color:var(--text-dim); border-radius:3px; cursor:pointer; font-size:.72rem; padding:4px 10px; width:100%; }
+/* Action row */
+.saction-row { display:flex; gap:10px; flex-wrap:wrap; }
+.sbtn { flex:1; min-width:120px; padding:9px 14px; background:var(--bg); border:1px solid var(--border); border-radius:4px; color:var(--text); font-size:.8rem; font-weight:500; cursor:pointer; }
+.sbtn-save { background:var(--accent); border-color:var(--accent); font-weight:700; }
+.sbtn:active { opacity:.75; }
+
 /* ── PRINT FORM ── */
 .print-form { padding:16px max(16px,env(safe-area-inset-left,0px)); display:flex; flex-direction:column; gap:10px; }
 .pf-row { display:flex; align-items:center; gap:10px; }
@@ -645,9 +690,35 @@ body.pi-mode #pi-view {
 
   <!-- SETTINGS PAGE -->
   <div class="tab-page" id="tab-settings">
-    <div class="tab-placeholder">
-      <div class="ph-icon">⚙️</div>
-      <div class="ph-text">Settings — coming soon</div>
+    <div class="settings-wrap">
+      <div class="settings-header-row">
+        <span class="settings-title">Settings</span>
+        <span id="settings-status" class="settings-status"></span>
+      </div>
+
+      <!-- Sleep timer -->
+      <div class="scard">
+        <div class="scard-label">SLEEP TIMER</div>
+        <div class="scard-row">
+          <span class="srow-label">Screen off after</span>
+          <div class="srow-ctrl">
+            <input id="cfg-sleep" type="number" class="cfg-num" min="0" max="120" value="10">
+            <span class="cfg-unit">min&nbsp;<span class="cfg-zero">(0 = never)</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Per-unit accordions -->
+      <div id="unit-accordions"></div>
+
+      <!-- Actions -->
+      <div class="scard">
+        <div class="scard-label">ACTIONS</div>
+        <div class="saction-row">
+          <button class="sbtn" onclick="reloadMeats()">↺ Reload Meats</button>
+          <button class="sbtn sbtn-save" onclick="pushSettings()">💾 Save &amp; Sync</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -678,7 +749,7 @@ const UNITS = [
   { id:'fridge3',  name:'Fridge 3',      section:'fridges',  minOk:1,   maxOk:5,   simBase: 3.6,  fan:true  },
   { id:'freezer1', name:'Freezer 1',     section:'freezers', minOk:-23, maxOk:-16, simBase:-19.5, fan:false },
   { id:'freezer2', name:'Freezer 2',     section:'freezers', minOk:-23, maxOk:-16, simBase:-20.1, fan:false },
-  { id:'butcher',  name:'Butcher Room',  section:'areas',    minOk:3,   maxOk:8,   simBase: 5.8,  fan:false },
+  { id:'butcherRoom',  name:'Butcher Room',  section:'areas',    minOk:3,   maxOk:8,   simBase: 5.8,  fan:true  },
 ];
 
 /* ═══════════════════════════════════════════════════════════
@@ -841,6 +912,7 @@ if (IS_PI) {
       /* live Firestore listener */
       function startLiveData() {
         initPrintQueue(db);
+        fetchSettings(db);
         try {
           db.collection('units').onSnapshot(snap => {
             snap.forEach(d => {
@@ -886,12 +958,235 @@ if (IS_PI) {
   }
 }
 
+// ── SETTINGS ───────────────────────────────────────────
+let _settingsDb = null;
+
+/* Local mirror of settings — populated from Firebase or defaults */
+const cfgUnits = {};
+UNITS.forEach(u => {
+  cfgUnits[u.id] = {
+    min: u.minOk, max: u.maxOk,
+    fanSchedule: u.fan ? { mode:'off', hourlyStart:0, hourlyDuration:10, fixedTimes:[] } : null
+  };
+});
+let cfgSleep = 10; // minutes
+
+/* Called from startLiveData once db is available */
+function fetchSettings(db) {
+  _settingsDb = db;
+  db.collection('settings').doc('config').get().then(doc => {
+    if (!doc.exists) { renderSettings(); return; }
+    const d = doc.data();
+    if (d.sleepSecs != null) cfgSleep = Math.round(d.sleepSecs / 60);
+    if (d.units) {
+      Object.entries(d.units).forEach(([uid, uc]) => {
+        if (!cfgUnits[uid]) return;
+        if (uc.min != null) cfgUnits[uid].min = uc.min;
+        if (uc.max != null) cfgUnits[uid].max = uc.max;
+        if (uc.fanSchedule && cfgUnits[uid].fanSchedule) {
+          cfgUnits[uid].fanSchedule = {
+            mode:            uc.fanSchedule.mode           || 'off',
+            hourlyStart:     uc.fanSchedule.hourlyStart    ?? 0,
+            hourlyDuration:  uc.fanSchedule.hourlyDuration ?? 10,
+            fixedTimes:      (uc.fanSchedule.fixedTimes    || []).map(s => ({h:s.h||0,m:s.m||0,dur:s.dur||10})),
+          };
+        }
+      });
+    }
+    renderSettings();
+  }).catch(() => renderSettings());
+}
+
+function pushSettings() {
+  if (!_settingsDb) { setSettingsStatus('Not connected', true); return; }
+  setSettingsStatus('Saving…');
+  // Read current values from DOM before pushing
+  readSettingsFromDOM();
+  const unitsPayload = {};
+  UNITS.forEach(u => {
+    const uc = cfgUnits[u.id];
+    const entry = { min: uc.min, max: uc.max };
+    if (u.fan && uc.fanSchedule) entry.fanSchedule = uc.fanSchedule;
+    unitsPayload[u.id] = entry;
+  });
+  _settingsDb.collection('settings').doc('config').set({
+    sleepSecs: cfgSleep * 60,
+    units: unitsPayload,
+  }).then(() => setSettingsStatus('Saved ✓'))
+    .catch(e => setSettingsStatus('Error: ' + e.message, true));
+}
+
+function reloadMeats() {
+  if (!_settingsDb) return;
+  setSettingsStatus('Reloading meats…');
+  loadPfMeats(_settingsDb);
+  setTimeout(() => setSettingsStatus(''), 3000);
+}
+
+function setSettingsStatus(msg, err=false) {
+  const el = document.getElementById('settings-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = err ? 'var(--alert)' : 'var(--ok)';
+  if (msg && !err) setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 4000);
+}
+
+function readSettingsFromDOM() {
+  const sv = parseInt(document.getElementById('cfg-sleep')?.value) || 0;
+  cfgSleep = Math.max(0, Math.min(120, sv));
+  UNITS.forEach(u => {
+    const uc = cfgUnits[u.id];
+    const minEl = document.getElementById(`cfg-min-${u.id}`);
+    const maxEl = document.getElementById(`cfg-max-${u.id}`);
+    if (minEl) uc.min = parseFloat(minEl.value) || uc.min;
+    if (maxEl) uc.max = parseFloat(maxEl.value) || uc.max;
+    if (u.fan && uc.fanSchedule) {
+      const modeEl = document.querySelector(`[data-fanmode="${u.id}"].active`);
+      if (modeEl) uc.fanSchedule.mode = modeEl.dataset.mode;
+      const hsEl  = document.getElementById(`cfg-hstart-${u.id}`);
+      const hdEl  = document.getElementById(`cfg-hdur-${u.id}`);
+      if (hsEl) uc.fanSchedule.hourlyStart    = Math.max(0,  Math.min(59, parseInt(hsEl.value)||0));
+      if (hdEl) uc.fanSchedule.hourlyDuration = Math.max(1,  Math.min(60, parseInt(hdEl.value)||10));
+      // Fixed slots are read in renderFanSlots via the slot inputs directly — already updated on input events
+    }
+  });
+}
+
+/* ── Render settings tab ── */
+function renderSettings() {
+  // Sleep
+  const sleepEl = document.getElementById('cfg-sleep');
+  if (sleepEl) sleepEl.value = cfgSleep;
+  // Unit accordions
+  const wrap = document.getElementById('unit-accordions');
+  if (!wrap) return;
+  wrap.innerHTML = UNITS.map(u => unitAccHTML(u)).join('');
+}
+
+function unitAccHTML(u) {
+  const uc = cfgUnits[u.id];
+  const fs = uc.fanSchedule;
+  const summary = `${uc.min}–${uc.max}°C${fs ? '  ·  Fan: '+fs.mode.toUpperCase() : ''}`;
+  return `<div class="unit-acc" id="acc-${u.id}">
+  <div class="unit-acc-head" onclick="toggleAcc('${u.id}')">
+    <span class="unit-acc-name">${u.name}</span>
+    <span class="unit-acc-summary" id="acc-sum-${u.id}">${summary}</span>
+    <span class="unit-acc-chevron">▼</span>
+  </div>
+  <div class="unit-acc-body">
+    <div class="urow">
+      <span class="urow-label">Min temp (°C)</span>
+      <div class="urow-val"><input id="cfg-min-${u.id}" type="number" class="cfg-num" step="0.5" value="${uc.min}" onchange="updateAccSummary('${u.id}')"></div>
+    </div>
+    <div class="urow">
+      <span class="urow-label">Max temp (°C)</span>
+      <div class="urow-val"><input id="cfg-max-${u.id}" type="number" class="cfg-num" step="0.5" value="${uc.max}" onchange="updateAccSummary('${u.id}')"></div>
+    </div>
+    ${fs ? fanScheduleHTML(u.id, fs) : ''}
+  </div>
+</div>`;
+}
+
+function fanScheduleHTML(uid, fs) {
+  const modes = ['off','hourly','fixed'];
+  const modeBtns = modes.map(m =>
+    `<button data-fanmode="${uid}" data-mode="${m}" class="${fs.mode===m?'active':''}" onclick="setFanMode('${uid}','${m}')">${m.toUpperCase()}</button>`
+  ).join('');
+  const hourlyRows = `
+    <div class="urow" id="fan-hourly-${uid}" style="${fs.mode==='hourly'?'':'display:none'}">
+      <span class="urow-label">Start minute</span>
+      <div class="urow-val"><input id="cfg-hstart-${uid}" type="number" class="cfg-num" min="0" max="59" value="${fs.hourlyStart}"> <span class="cfg-unit">min past each hour</span></div>
+    </div>
+    <div class="urow" id="fan-hdur-${uid}" style="${fs.mode==='hourly'?'':'display:none'}">
+      <span class="urow-label">Duration</span>
+      <div class="urow-val"><input id="cfg-hdur-${uid}" type="number" class="cfg-num" min="1" max="60" value="${fs.hourlyDuration}"> <span class="cfg-unit">min</span></div>
+    </div>`;
+  const fixedArea = `<div id="fan-fixed-${uid}" style="${fs.mode==='fixed'?'':'display:none'}">${renderFanSlotsHTML(uid, fs.fixedTimes)}</div>`;
+  return `
+    <div class="urow">
+      <span class="urow-label">Fan schedule</span>
+      <div class="urow-val"><div class="cfg-mode">${modeBtns}</div></div>
+    </div>
+    ${hourlyRows}
+    ${fixedArea}`;
+}
+
+function renderFanSlotsHTML(uid, slots) {
+  const rows = (slots||[]).map((s,i) => `
+    <div class="fan-slot" id="fan-slot-${uid}-${i}">
+      <span class="slot-num">Slot ${i+1}</span>
+      <div class="fan-slot-time">
+        <input class="slot-input" type="number" min="0" max="23" value="${s.h}" oninput="updateSlot('${uid}',${i},'h',this.value)" title="Hour">
+        <span class="slot-sep">:</span>
+        <input class="slot-input" type="number" min="0" max="59" value="${s.m}" oninput="updateSlot('${uid}',${i},'m',this.value)" title="Minute">
+        <span class="slot-dur-label">for</span>
+        <input class="slot-dur" type="number" min="1" max="60" value="${s.dur}" oninput="updateSlot('${uid}',${i},'dur',this.value)" title="Duration (min)">
+        <span class="cfg-unit">min</span>
+      </div>
+      <button class="slot-del" onclick="deleteSlot('${uid}',${i})">✕</button>
+    </div>`).join('');
+  const addBtn = (slots||[]).length < 6
+    ? `<button class="slot-add" onclick="addSlot('${uid}')">+ Add Time</button>` : '';
+  return `<div class="urow"><span class="urow-label">Time slots</span><div class="urow-val"><div class="fan-slots" id="fan-slots-${uid}">${rows}</div>${addBtn}</div></div>`;
+}
+
+function toggleAcc(uid) {
+  document.getElementById('acc-'+uid)?.classList.toggle('open');
+}
+
+function updateAccSummary(uid) {
+  const uc  = cfgUnits[uid];
+  const minV = parseFloat(document.getElementById(`cfg-min-${uid}`)?.value ?? uc.min);
+  const maxV = parseFloat(document.getElementById(`cfg-max-${uid}`)?.value ?? uc.max);
+  const fs  = uc.fanSchedule;
+  const el  = document.getElementById('acc-sum-'+uid);
+  if (el) el.textContent = `${minV}–${maxV}°C${fs ? '  ·  Fan: '+fs.mode.toUpperCase() : ''}`;
+}
+
+function setFanMode(uid, mode) {
+  const uc = cfgUnits[uid];
+  if (!uc.fanSchedule) return;
+  uc.fanSchedule.mode = mode;
+  // Update button states
+  document.querySelectorAll(`[data-fanmode="${uid}"]`).forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  // Show/hide rows
+  document.getElementById(`fan-hourly-${uid}`)?.style.setProperty('display', mode==='hourly'?'':'none');
+  document.getElementById(`fan-hdur-${uid}`)?.style.setProperty('display',   mode==='hourly'?'':'none');
+  document.getElementById(`fan-fixed-${uid}`)?.style.setProperty('display',  mode==='fixed' ?'':'none');
+  updateAccSummary(uid);
+}
+
+function updateSlot(uid, i, field, val) {
+  const fs = cfgUnits[uid]?.fanSchedule;
+  if (!fs || !fs.fixedTimes[i]) return;
+  fs.fixedTimes[i][field] = Math.max(0, parseInt(val)||0);
+}
+
+function addSlot(uid) {
+  const fs = cfgUnits[uid]?.fanSchedule;
+  if (!fs || fs.fixedTimes.length >= 6) return;
+  fs.fixedTimes.push({h:0, m:0, dur:10});
+  const container = document.getElementById(`fan-fixed-${uid}`);
+  if (container) container.innerHTML = renderFanSlotsHTML(uid, fs.fixedTimes);
+}
+
+function deleteSlot(uid, i) {
+  const fs = cfgUnits[uid]?.fanSchedule;
+  if (!fs) return;
+  fs.fixedTimes.splice(i, 1);
+  const container = document.getElementById(`fan-fixed-${uid}`);
+  if (container) container.innerHTML = renderFanSlotsHTML(uid, fs.fixedTimes);
+}
+
 // ── TAB SWITCHING ──────────────────────────────────────
 function switchTab(name, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'settings') renderSettings();
 }
 
 // ── CARCASS ────────────────────────────────────────────
