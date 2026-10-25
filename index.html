@@ -239,6 +239,37 @@ body::before {
 .tab-placeholder .ph-icon { font-size:3rem; margin-bottom:12px; }
 .tab-placeholder .ph-text { font-size:.85rem; line-height:1.5; }
 
+/* ── PRINT FORM ── */
+.print-form { padding:16px max(16px,env(safe-area-inset-left,0px)); display:flex; flex-direction:column; gap:10px; }
+.pf-row { display:flex; align-items:center; gap:10px; }
+.pf-label { width:62px; font-size:.7rem; font-weight:700; letter-spacing:.08em; color:var(--text-dim); flex-shrink:0; }
+.pf-select-wrap { flex:1; }
+.pf-select {
+  width:100%; background:var(--bg-card); border:1px solid var(--border);
+  border-radius:6px; color:var(--text); font-family:'Roboto',sans-serif;
+  font-size:.9rem; padding:10px 12px; appearance:none;
+}
+.pf-weight-wrap, .pf-qty-wrap { display:flex; align-items:center; gap:8px; }
+.pf-arw {
+  width:38px; height:38px; background:var(--bg-card); border:1px solid var(--border);
+  border-radius:6px; color:var(--text); font-size:1.2rem; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.pf-weight-input {
+  width:72px; background:var(--bg-card); border:1px solid var(--border);
+  border-radius:6px; color:var(--text); font-size:.9rem; padding:8px;
+  text-align:center; font-family:'Roboto',sans-serif;
+}
+.pf-weight-unit { font-size:.8rem; color:var(--text-dim); }
+.pf-qty-val { font-size:1.1rem; font-weight:700; min-width:28px; text-align:center; }
+.pf-add-btn {
+  margin-top:8px; width:100%; padding:14px; background:var(--accent);
+  border:none; border-radius:8px; color:#fff; font-family:'Roboto',sans-serif;
+  font-size:.95rem; font-weight:700; letter-spacing:.06em; cursor:pointer;
+}
+.pf-add-btn:disabled { background:var(--text-dim); cursor:default; }
+.pf-msg { text-align:center; font-size:.82rem; min-height:20px; color:var(--accent); }
+
 .app-header {
   background: var(--bg-header);
   border-bottom: 2px solid var(--accent);
@@ -534,9 +565,42 @@ body.pi-mode #pi-view {
 
   <!-- PRINT PAGE -->
   <div class="tab-page" id="tab-print">
-    <div class="tab-placeholder">
-      <div class="ph-icon">🏷️</div>
-      <div class="ph-text">Print labels — coming soon</div>
+    <div class="print-form" id="print-form">
+      <div class="pf-row">
+        <div class="pf-label">MEAT</div>
+        <div class="pf-select-wrap">
+          <select class="pf-select" id="pf-meat" onchange="pfMeatChanged()">
+            <option value="">Loading…</option>
+          </select>
+        </div>
+      </div>
+      <div class="pf-row">
+        <div class="pf-label">CUT</div>
+        <div class="pf-select-wrap">
+          <select class="pf-select" id="pf-cut">
+            <option value="">— select meat first —</option>
+          </select>
+        </div>
+      </div>
+      <div class="pf-row">
+        <div class="pf-label">WEIGHT</div>
+        <div class="pf-weight-wrap">
+          <button class="pf-arw" onclick="pfWeightAdj(-100)">‹</button>
+          <input class="pf-weight-input" type="number" id="pf-weight" value="500" min="10" max="10000">
+          <span class="pf-weight-unit">g</span>
+          <button class="pf-arw" onclick="pfWeightAdj(100)">›</button>
+        </div>
+      </div>
+      <div class="pf-row">
+        <div class="pf-label">QTY</div>
+        <div class="pf-qty-wrap">
+          <button class="pf-arw" onclick="pfQtyAdj(-1)">‹</button>
+          <span class="pf-qty-val" id="pf-qty">1</span>
+          <button class="pf-arw" onclick="pfQtyAdj(1)">›</button>
+        </div>
+      </div>
+      <button class="pf-add-btn" id="pf-add-btn" onclick="pfAddToQueue()">ADD TO QUEUE</button>
+      <div class="pf-msg" id="pf-msg"></div>
     </div>
   </div>
 
@@ -776,6 +840,7 @@ if (IS_PI) {
 
       /* live Firestore listener */
       function startLiveData() {
+        initPrintQueue(db);
         try {
           db.collection('units').onSnapshot(snap => {
             snap.forEach(d => {
@@ -944,4 +1009,103 @@ document.addEventListener('DOMContentLoaded', () => {
   renderCarcassList();
   updateCarcassBadge();
 });
+
+/* ═══════════════════════════════════════════════════════════
+   PRINT QUEUE — phone/PC side
+═══════════════════════════════════════════════════════════ */
+let pfMeats   = [];   // [{name, cuts:[]}]
+let pfQty     = 1;
+let _pfDb     = null; // set when Firebase is ready
+
+/* Called from startLiveData once db is available */
+function initPrintQueue(db) {
+  _pfDb = db;
+  loadPfMeats(db);
+}
+
+function loadPfMeats(db) {
+  db.collection('meats').get().then(snap => {
+    const ml = [];
+    snap.forEach(doc => {
+      const d = doc.data();
+      if (d.name) ml.push({ name: d.name, cuts: d.cuts || [] });
+    });
+    ml.sort((a, b) => a.name.localeCompare(b.name));
+    // Venison first
+    const v = ml.filter(m => m.name === 'Venison');
+    const o = ml.filter(m => m.name !== 'Venison');
+    pfMeats = [...v, ...o];
+    pfPopulateMeats();
+  }).catch(() => {});
+}
+
+function pfPopulateMeats() {
+  const sel = document.getElementById('pf-meat');
+  if (!sel) return;
+  sel.innerHTML = pfMeats.map((m, i) =>
+    `<option value="${i}">${m.name}</option>`
+  ).join('');
+  pfMeatChanged();
+}
+
+function pfMeatChanged() {
+  const sel  = document.getElementById('pf-meat');
+  const csel = document.getElementById('pf-cut');
+  if (!sel || !csel) return;
+  const idx  = parseInt(sel.value);
+  const meat = pfMeats[idx];
+  if (!meat) { csel.innerHTML = '<option>— select meat first —</option>'; return; }
+  csel.innerHTML = meat.cuts.map(c => `<option>${c}</option>`).join('');
+}
+
+function pfWeightAdj(delta) {
+  const inp = document.getElementById('pf-weight');
+  if (!inp) return;
+  let v = parseInt(inp.value) || 500;
+  v = Math.max(10, Math.min(10000, v + delta));
+  inp.value = v;
+}
+
+function pfQtyAdj(delta) {
+  pfQty = Math.max(1, Math.min(20, pfQty + delta));
+  const el = document.getElementById('pf-qty');
+  if (el) el.textContent = pfQty;
+}
+
+function pfAddToQueue() {
+  if (!_pfDb) { pfShowMsg('Not signed in', true); return; }
+  const meatSel = document.getElementById('pf-meat');
+  const cutSel  = document.getElementById('pf-cut');
+  const wInp    = document.getElementById('pf-weight');
+  const btn     = document.getElementById('pf-add-btn');
+  const meat = pfMeats[parseInt(meatSel?.value)]?.name || '';
+  const cut  = cutSel?.value || '';
+  const wg   = parseInt(wInp?.value) || 500;
+  if (!meat || !cut) { pfShowMsg('Select meat and cut', true); return; }
+  btn.disabled = true;
+  _pfDb.collection('printQueue').add({
+    meat, cut,
+    weightG: wg,
+    qty:     pfQty,
+    addedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  }).then(() => {
+    pfShowMsg(`Added: ${pfQty}× ${meat} ${cut}`, false);
+    pfQty = 1;
+    const qel = document.getElementById('pf-qty');
+    if (qel) qel.textContent = '1';
+  }).catch(e => {
+    pfShowMsg('Error — try again', true);
+  }).finally(() => {
+    btn.disabled = false;
+  });
+}
+
+function pfShowMsg(txt, isErr) {
+  const el = document.getElementById('pf-msg');
+  if (!el) return;
+  el.textContent = txt;
+  el.style.color = isErr ? 'var(--col-alert, #e05)' : 'var(--accent)';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.textContent = ''; }, 3000);
+}
 </script>
