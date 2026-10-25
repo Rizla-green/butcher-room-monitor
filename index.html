@@ -115,6 +115,130 @@ body::before {
 ═══════════════════════════════════════ */
 #app { display:none; padding-bottom:56px; }
 
+/* ═══════════════════════════════════════
+   TAB BAR
+═══════════════════════════════════════ */
+.tab-bar {
+  display:flex; background:var(--bg-header);
+  border-bottom:1px solid var(--border);
+  overflow-x:auto; scrollbar-width:none;
+  position:sticky; top:58px; z-index:9;
+}
+.tab-bar::-webkit-scrollbar { display:none; }
+.tab-btn {
+  flex:1; min-width:70px; padding:11px 8px 9px;
+  text-align:center; font-family:'Oswald',sans-serif;
+  font-size:.78rem; font-weight:600; letter-spacing:.06em;
+  color:var(--text-dim); cursor:pointer; border:none; background:none;
+  border-bottom:3px solid transparent;
+  transition:color .15s,border-color .15s; white-space:nowrap;
+}
+.tab-btn.active { color:var(--text); border-bottom-color:var(--accent); }
+.tab-badge {
+  display:inline-block; background:var(--accent); color:#fff;
+  font-size:.6rem; border-radius:8px; padding:1px 5px;
+  margin-left:4px; vertical-align:middle;
+}
+
+/* ═══════════════════════════════════════
+   PAGE VIEWS
+═══════════════════════════════════════ */
+.tab-page { display:none; }
+.tab-page.active { display:block; }
+
+/* ═══════════════════════════════════════
+   CARCASS PAGE
+═══════════════════════════════════════ */
+.carcass-add-btn {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  width:100%; background:var(--accent); color:#fff; border:none;
+  border-radius:6px; padding:12px; font-family:'Oswald',sans-serif;
+  font-size:.85rem; font-weight:600; letter-spacing:.06em;
+  cursor:pointer; margin:16px 0;
+}
+.carcass-form {
+  display:none; background:var(--bg-header); border:1px solid var(--border);
+  border-radius:8px; padding:16px; margin:0 16px 16px;
+}
+.carcass-form.open { display:block; }
+.cf-row { margin-bottom:12px; }
+.cf-label {
+  display:block; font-size:.7rem; color:var(--text-dim); margin-bottom:4px;
+  letter-spacing:.05em; text-transform:uppercase;
+}
+.cf-input, .cf-select {
+  width:100%; background:var(--bg-card); border:1px solid var(--border);
+  color:var(--text); border-radius:5px; padding:9px 12px;
+  font-family:'Roboto',sans-serif; font-size:.85rem;
+}
+.cf-photo-lbl {
+  display:block; width:100%; background:var(--bg-card);
+  border:1px dashed var(--border); border-radius:5px;
+  padding:22px; text-align:center; color:var(--text-dim);
+  font-size:.8rem; cursor:pointer;
+}
+.cf-photo-lbl input { display:none; }
+.cf-btn-row { display:flex; gap:8px; margin-top:14px; }
+.cf-save {
+  flex:1; background:var(--accent); color:#fff; border:none;
+  border-radius:5px; padding:10px; font-family:'Oswald',sans-serif;
+  font-size:.85rem; font-weight:600; letter-spacing:.06em; cursor:pointer;
+}
+.cf-cancel {
+  flex:1; background:var(--bg-card); color:var(--text-dim);
+  border:1px solid var(--border); border-radius:5px; padding:10px;
+  font-family:'Oswald',sans-serif; font-size:.85rem;
+  font-weight:600; letter-spacing:.06em; cursor:pointer;
+}
+.carcass-list { padding:0 16px 16px; }
+.carcass-card {
+  background:var(--bg-header); border:1px solid var(--border);
+  border-radius:8px; margin-bottom:12px; overflow:hidden;
+  display:flex;
+}
+.carcass-thumb {
+  width:80px; flex-shrink:0; background:var(--bg-card);
+  display:flex; align-items:center; justify-content:center;
+  color:var(--text-dim); font-size:.65rem; text-align:center;
+  min-height:90px;
+}
+.carcass-thumb img { width:80px; height:100%; object-fit:cover; }
+.carcass-body { padding:10px 12px; flex:1; min-width:0; }
+.carcass-species {
+  font-family:'Oswald',sans-serif; font-size:.95rem; font-weight:600;
+}
+.carcass-meta { font-size:.7rem; color:var(--text-dim); margin:2px 0 8px; }
+.loc-badge {
+  display:inline-block; padding:3px 10px; border-radius:12px;
+  font-size:.68rem; font-weight:500; letter-spacing:.04em;
+  font-family:'Oswald',sans-serif;
+}
+.loc-field   { background:#1a3a1a; color:#66bb6a; }
+.loc-butcher { background:#2a2a00; color:#ffd54f; }
+.loc-fridge  { background:#0d2a4a; color:#42a5f5; }
+.loc-freezer { background:#1a0a3a; color:#ba68c8; }
+.loc-trail {
+  display:flex; align-items:center; gap:4px;
+  flex-wrap:wrap; margin-top:6px;
+}
+.trail-step {
+  font-size:.6rem; color:var(--text-dim);
+  display:flex; align-items:center; gap:4px;
+}
+.trail-step::after { content:'→'; color:var(--border); }
+.trail-step:last-child::after { display:none; }
+.trail-step.current { color:var(--text); }
+.move-btn {
+  margin-top:8px; background:var(--bg-card); border:1px solid var(--border);
+  border-radius:4px; color:var(--text-dim); font-size:.68rem;
+  padding:4px 10px; cursor:pointer; font-family:'Roboto',sans-serif;
+}
+.tab-placeholder {
+  text-align:center; padding:48px 16px; color:var(--text-dim);
+}
+.tab-placeholder .ph-icon { font-size:3rem; margin-bottom:12px; }
+.tab-placeholder .ph-text { font-size:.85rem; line-height:1.5; }
+
 .app-header {
   background: var(--bg-header);
   border-bottom: 2px solid var(--accent);
@@ -384,18 +508,83 @@ body.pi-mode #pi-view {
     <button class="btn-logout" id="btn-logout">Sign Out</button>
   </header>
 
-  <div class="dashboard">
-    <div class="section-label">Fridges</div>
-    <div class="units-grid" id="grid-fridges"></div>
-    <div class="section-label">Freezers</div>
-    <div class="units-grid" id="grid-freezers"></div>
-    <div class="section-label">Work Areas</div>
-    <div class="units-grid" id="grid-areas"></div>
+  <!-- TAB BAR -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" data-tab="temps" onclick="switchTab('temps',this)">TEMPS</button>
+    <button class="tab-btn" data-tab="print" onclick="switchTab('print',this)">PRINT <span class="tab-badge" id="badge-print" hidden>0</span></button>
+    <button class="tab-btn" data-tab="carcass" onclick="switchTab('carcass',this)">CARCASS <span class="tab-badge" id="badge-carcass" hidden>0</span></button>
+    <button class="tab-btn" data-tab="settings" onclick="switchTab('settings',this)">SETTINGS</button>
+  </nav>
+
+  <!-- TEMPS PAGE -->
+  <div class="tab-page active" id="tab-temps">
+    <div class="dashboard">
+      <div class="section-label">Fridges</div>
+      <div class="units-grid" id="grid-fridges"></div>
+      <div class="section-label">Freezers</div>
+      <div class="units-grid" id="grid-freezers"></div>
+      <div class="section-label">Work Areas</div>
+      <div class="units-grid" id="grid-areas"></div>
+    </div>
+    <div class="sync-bar">
+      <span><span class="sync-dot" id="sync-dot"></span><span id="sync-mode">Connecting…</span></span>
+      <span id="sync-ts"></span>
+    </div>
   </div>
 
-  <div class="sync-bar">
-    <span><span class="sync-dot" id="sync-dot"></span><span id="sync-mode">Connecting…</span></span>
-    <span id="sync-ts"></span>
+  <!-- PRINT PAGE -->
+  <div class="tab-page" id="tab-print">
+    <div class="tab-placeholder">
+      <div class="ph-icon">🏷️</div>
+      <div class="ph-text">Print labels — coming soon</div>
+    </div>
+  </div>
+
+  <!-- CARCASS PAGE -->
+  <div class="tab-page" id="tab-carcass">
+    <div style="padding:0 16px;">
+      <button class="carcass-add-btn" onclick="toggleCarcassForm()">+ ADD CARCASS</button>
+    </div>
+    <div class="carcass-form" id="carcass-form">
+      <div class="cf-row">
+        <label class="cf-label">Photo</label>
+        <label class="cf-photo-lbl">
+          <input type="file" accept="image/*" capture="environment" id="cf-photo-input" onchange="cfPreviewPhoto(this)">
+          <div id="cf-photo-preview">📷 Take photo or upload</div>
+        </label>
+      </div>
+      <div class="cf-row">
+        <label class="cf-label">Date</label>
+        <input class="cf-input" type="text" id="cf-date" readonly>
+      </div>
+      <div class="cf-row">
+        <label class="cf-label">Species</label>
+        <select class="cf-select" id="cf-species">
+          <option>Roe Deer</option>
+          <option>Red Deer</option>
+          <option>Fallow Deer</option>
+          <option>Sika Deer</option>
+          <option>Muntjac</option>
+        </select>
+      </div>
+      <div class="cf-row">
+        <label class="cf-label">Tag / Reference</label>
+        <input class="cf-input" type="text" id="cf-tag" placeholder="e.g. ROE-001">
+      </div>
+      <div class="cf-btn-row">
+        <button class="cf-cancel" onclick="toggleCarcassForm()">CANCEL</button>
+        <button class="cf-save" onclick="saveCarcass()">SAVE</button>
+      </div>
+    </div>
+    <div class="carcass-list" id="carcass-list"></div>
+  </div>
+
+  <!-- SETTINGS PAGE -->
+  <div class="tab-page" id="tab-settings">
+    <div class="tab-placeholder">
+      <div class="ph-icon">⚙️</div>
+      <div class="ph-text">Settings — coming soon</div>
+    </div>
   </div>
 
 </div><!-- #app -->
@@ -634,5 +823,130 @@ if (IS_PI) {
     renderDash();
     setInterval(() => { simTick(); renderDash(); }, 30000);
   }
+}
+
+// ── TAB SWITCHING ──────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ── CARCASS ────────────────────────────────────────────
+const CARCASS_LOCATIONS = [
+  { key:'field',    label:'Field',        cls:'loc-field' },
+  { key:'butcher',  label:'Butcher Room', cls:'loc-butcher' },
+  { key:'fridge1',  label:'Fridge 1',     cls:'loc-fridge' },
+  { key:'fridge2',  label:'Fridge 2',     cls:'loc-fridge' },
+  { key:'fridge3',  label:'Fridge 3',     cls:'loc-fridge' },
+  { key:'freezer1', label:'Freezer 1',    cls:'loc-freezer' },
+  { key:'freezer2', label:'Freezer 2',    cls:'loc-freezer' },
+];
+
+let carcassRecords = JSON.parse(localStorage.getItem('carcass_records') || '[]');
+
+function saveCarcassLocal() {
+  try { localStorage.setItem('carcass_records', JSON.stringify(carcassRecords)); } catch(e){}
+  updateCarcassBadge();
+}
+
+function updateCarcassBadge() {
+  const badge = document.getElementById('badge-carcass');
+  if (!badge) return;
+  const n = carcassRecords.length;
+  badge.textContent = n;
+  badge.hidden = n === 0;
+}
+
+function renderCarcassList() {
+  const list = document.getElementById('carcass-list');
+  if (!list) return;
+  if (carcassRecords.length === 0) {
+    list.innerHTML = '<div class="tab-placeholder"><div class="ph-text">No carcasses logged yet</div></div>';
+    return;
+  }
+  list.innerHTML = carcassRecords.slice().reverse().map((c, ri) => {
+    const loc = CARCASS_LOCATIONS.find(l => l.key === c.location) || CARCASS_LOCATIONS[0];
+    const trail = c.trail.map((t, i) => {
+      const isCurrent = i === c.trail.length - 1;
+      return `<span class="trail-step${isCurrent?' current':''}">${t}</span>`;
+    }).join('');
+    const photoHtml = c.photo
+      ? `<img src="${c.photo}" alt="">`
+      : `<div style="padding:8px;font-size:.65rem;color:var(--text-dim)">No<br>Photo</div>`;
+    const realIdx = carcassRecords.length - 1 - ri;
+    return `<div class="carcass-card">
+      <div class="carcass-thumb">${photoHtml}</div>
+      <div class="carcass-body">
+        <div class="carcass-species">${c.species}</div>
+        <div class="carcass-meta">${c.date} · ${c.tag || '—'}</div>
+        <span class="loc-badge ${loc.cls}">${loc.label}</span>
+        <div class="loc-trail">${trail}</div>
+        <button class="move-btn" onclick="moveCarcass(${realIdx})">Move location ›</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCarcassForm() {
+  const f = document.getElementById('carcass-form');
+  f.classList.toggle('open');
+  if (f.classList.contains('open')) {
+    const now = new Date();
+    document.getElementById('cf-date').value =
+      String(now.getDate()).padStart(2,'0') + '/' +
+      String(now.getMonth()+1).padStart(2,'0') + '/' + now.getFullYear();
+    document.getElementById('cf-tag').value = '';
+    document.getElementById('cf-photo-preview').innerHTML = '📷 Take photo or upload';
+    document.getElementById('cf-photo-input').value = '';
+  }
+}
+
+window._cfPhotoData = null;
+function cfPreviewPhoto(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      window._cfPhotoData = e.target.result;
+      document.getElementById('cf-photo-preview').innerHTML =
+        `<img src="${e.target.result}" style="max-height:120px;border-radius:4px;">`;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function saveCarcass() {
+  const species = document.getElementById('cf-species').value;
+  const tag     = document.getElementById('cf-tag').value.trim();
+  const date    = document.getElementById('cf-date').value;
+  carcassRecords.push({
+    species, tag, date,
+    location: 'field',
+    trail: ['Field'],
+    photo: window._cfPhotoData || null,
+    created: Date.now()
+  });
+  window._cfPhotoData = null;
+  saveCarcassLocal();
+  renderCarcassList();
+  toggleCarcassForm();
+}
+
+function moveCarcass(idx) {
+  const c = carcassRecords[idx];
+  const locIdx = CARCASS_LOCATIONS.findIndex(l => l.key === c.location);
+  const next = CARCASS_LOCATIONS[(locIdx + 1) % CARCASS_LOCATIONS.length];
+  c.location = next.key;
+  c.trail.push(next.label);
+  saveCarcassLocal();
+  renderCarcassList();
+}
+
+// init carcass on load
+document.addEventListener('DOMContentLoaded', () => {
+  renderCarcassList();
+  updateCarcassBadge();
+});
 }
 </script>
