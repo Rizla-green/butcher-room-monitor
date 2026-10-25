@@ -589,7 +589,10 @@ body.pi-mode #pi-view {
 
 </div><!-- #app -->
 
-<script type="module">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-auth-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-firestore-compat.min.js"></script>
+<script>
 /* ═══════════════════════════════════════════════════════════
    CONFIG
 ═══════════════════════════════════════════════════════════ */
@@ -737,18 +740,11 @@ if (IS_PI) {
   /* ═══════════════════════════════════════════════════════
      FIREBASE INIT
   ═══════════════════════════════════════════════════════ */
-  (async () => {
+  (() => {
     try {
-      const [{ initializeApp }, { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut },
-             { getFirestore, collection, onSnapshot }] = await Promise.all([
-        import("https://cdn.jsdelivr.net/npm/firebase@10.7.1/app/+esm"),
-        import("https://cdn.jsdelivr.net/npm/firebase@10.7.1/auth/+esm"),
-        import("https://cdn.jsdelivr.net/npm/firebase@10.7.1/firestore/+esm"),
-      ]);
-
-      const app  = initializeApp(FIREBASE_CONFIG);
-      const auth = getAuth(app);
-      const db   = getFirestore(app);
+      const app  = firebase.initializeApp(FIREBASE_CONFIG);
+      const auth = firebase.auth();
+      const db   = firebase.firestore();
 
       /* sign-in */
       function doSignIn() {
@@ -756,17 +752,17 @@ if (IS_PI) {
         const pass  = document.getElementById('login-password').value;
         const err   = document.getElementById('login-error');
         err.textContent = '';
-        signInWithEmailAndPassword(auth, email, pass)
+        auth.signInWithEmailAndPassword(email, pass)
           .catch(() => { err.textContent = 'Incorrect email or password.'; });
       }
       document.getElementById('btn-signin').addEventListener('click', doSignIn);
       document.getElementById('login-password').addEventListener('keydown', e => {
         if (e.key==='Enter') doSignIn();
       });
-      document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
+      document.getElementById('btn-logout').addEventListener('click', () => auth.signOut());
 
       /* auth state */
-      onAuthStateChanged(auth, user => {
+      auth.onAuthStateChanged(user => {
         if (user) {
           document.getElementById('login-screen').style.display = 'none';
           document.getElementById('app').style.display = 'block';
@@ -781,7 +777,7 @@ if (IS_PI) {
       /* live Firestore listener */
       function startLiveData() {
         try {
-          onSnapshot(collection(db, 'units'), snap => {
+          db.collection('units').onSnapshot(snap => {
             snap.forEach(d => {
               if (!sim[d.id]) return;
               const x = d.data();
