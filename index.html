@@ -1138,9 +1138,11 @@ function renderEspIndicators() {
 function unitAccHTML(u) {
   const uc = cfgUnits[u.id];
   const fs = uc.fanSchedule;
-  const sbTag = uc.standby ? ' · STANDBY' : '';
-  const alTag = !uc.alarmEnabled ? ' · ALARM OFF' : '';
-  const summary = `${uc.min}–${uc.max}°C${fs ? '  ·  Fan: '+fs.mode.toUpperCase() : ''}${sbTag}${alTag}`;
+  const sbTag  = uc.standby ? ' · STANDBY' : '';
+  const alTag  = !uc.alarmEnabled ? ' · ALARM OFF' : '';
+  const now0   = Date.now();
+  const ovrTag = (u.fan && uc.fanOverride && uc.fanOverrideUntil > now0) ? ' · FAN OVERRIDE' : '';
+  const summary = `${uc.min}–${uc.max}°C${fs ? '  ·  Fan: '+fs.mode.toUpperCase() : ''}${ovrTag}${sbTag}${alTag}`;
   // Fan override row (fan units only)
   const now = Date.now();
   const overrideActive = u.fan && uc.fanOverride && uc.fanOverrideUntil > now;
@@ -1156,6 +1158,7 @@ function unitAccHTML(u) {
           ? `<button class="cfg-tog cfg-tog-on"  onclick="setFanOverride('${u.id}',false)">Cancel</button>`
           : `<button class="cfg-tog"             onclick="setFanOverride('${u.id}',true)">Force ON (20 min)</button>`}
       </div>
+      ${overrideActive ? `<span style="font-size:.68rem;color:var(--text-dim);margin-top:2px;display:block">Pushed to cloud — ESP32 picks up on next cycle</span>` : ''}
     </div>` : '';
   return `<div class="unit-acc" id="acc-${u.id}">
   <div class="unit-acc-head" onclick="toggleAcc('${u.id}')">
@@ -1250,8 +1253,24 @@ function updateAccSummary(uid) {
   const minV = parseFloat(document.getElementById(`cfg-min-${uid}`)?.value ?? uc.min);
   const maxV = parseFloat(document.getElementById(`cfg-max-${uid}`)?.value ?? uc.max);
   const fs  = uc.fanSchedule;
+
+  // Update alarm/standby label text to match checkbox state
+  const alarmEl   = document.getElementById(`cfg-alarm-${uid}`);
+  const standbyEl = document.getElementById(`cfg-standby-${uid}`);
+  const alarmLbl   = document.getElementById(`alarm-lbl-${uid}`);
+  const standbyLbl = document.getElementById(`standby-lbl-${uid}`);
+  if (alarmEl   && alarmLbl)   alarmLbl.textContent   = alarmEl.checked   ? 'On' : 'Off';
+  if (standbyEl && standbyLbl) standbyLbl.textContent = standbyEl.checked ? 'On' : 'Off';
+
+  // Update accordion summary line
+  const alarmOn   = alarmEl   ? alarmEl.checked   : uc.alarmEnabled;
+  const standbyOn = standbyEl ? standbyEl.checked : uc.standby;
+  const ovrOn     = uc.fanOverride && uc.fanOverrideUntil > Date.now();
+  const ovrTag = ovrOn    ? '  ·  FAN OVERRIDE' : '';
+  const alTag  = !alarmOn ? '  ·  ALARM OFF'    : '';
+  const stTag  = standbyOn ? '  ·  STANDBY'     : '';
   const el  = document.getElementById('acc-sum-'+uid);
-  if (el) el.textContent = `${minV}–${maxV}°C${fs ? '  ·  Fan: '+fs.mode.toUpperCase() : ''}`;
+  if (el) el.textContent = `${minV}–${maxV}°C${fs ? '  ·  Fan: '+fs.mode.toUpperCase() : ''}${ovrTag}${alTag}${stTag}`;
 }
 
 function setFanMode(uid, mode) {
