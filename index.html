@@ -283,6 +283,29 @@ body::before {
 .sbtn { flex:1; min-width:120px; padding:9px 14px; background:var(--bg); border:1px solid var(--border); border-radius:4px; color:var(--text); font-size:.8rem; font-weight:500; cursor:pointer; }
 .sbtn-save { background:var(--accent); border-color:var(--accent); font-weight:700; }
 .sbtn:active { opacity:.75; }
+/* ESP32 indicator rows */
+.esp-row { display:flex; align-items:center; gap:8px; padding:5px 0; font-size:.78rem; }
+.esp-row + .esp-row { border-top:1px solid var(--border); }
+.esp-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.dot-on  { background:#16a34a; box-shadow:0 0 6px #16a34a88; }
+.dot-off { background:#dc2626; box-shadow:0 0 4px #dc262644; }
+.dot-nc  { background:var(--border); }
+.esp-name { flex:1; color:var(--text); }
+.esp-age  { font-size:.68rem; color:var(--text-dim); }
+/* Toggle switch */
+.cfg-toggle { display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; }
+.cfg-toggle input { display:none; }
+.cfg-toggle-track { width:34px; height:18px; border-radius:9px; background:var(--border); position:relative; transition:background .15s; flex-shrink:0; }
+.cfg-toggle-track::after { content:''; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:#fff; transition:transform .15s; }
+.cfg-toggle input:checked ~ .cfg-toggle-track { background:var(--accent); }
+.cfg-toggle input:checked ~ .cfg-toggle-track::after { transform:translateX(16px); }
+.cfg-toggle-lbl { font-size:.78rem; color:var(--text-dim); min-width:22px; }
+.cfg-toggle input:checked ~ .cfg-toggle-track ~ .cfg-toggle-lbl { color:var(--text); }
+/* Fan override row */
+.urow-override { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.override-lbl { font-size:.72rem; color:var(--text-dim); flex:1; }
+.cfg-tog { font-size:.72rem; font-weight:600; padding:4px 10px; border-radius:3px; border:1px solid var(--border); background:var(--bg); color:var(--text); cursor:pointer; white-space:nowrap; }
+.cfg-tog-on { background:var(--fan); border-color:var(--fan); color:#fff; }
 
 /* ── PRINT FORM ── */
 .print-form { padding:16px max(16px,env(safe-area-inset-left,0px)); display:flex; flex-direction:column; gap:10px; }
@@ -696,6 +719,12 @@ body.pi-mode #pi-view {
         <span id="settings-status" class="settings-status"></span>
       </div>
 
+      <!-- ESP32 status -->
+      <div class="scard">
+        <div class="scard-label">ESP32 STATUS</div>
+        <div id="esp-indicators"></div>
+      </div>
+
       <!-- Sleep timer -->
       <div class="scard">
         <div class="scard-label">SLEEP TIMER</div>
@@ -919,11 +948,12 @@ if (IS_PI) {
               if (!sim[d.id]) return;
               const x = d.data();
               sim[d.id] = {
-                temp: x.temperature   ?? sim[d.id].temp,
-                fan:  x.fanOn         ?? sim[d.id].fan,
-                min:  x.minToday      ?? sim[d.id].min,
-                max:  x.maxToday      ?? sim[d.id].max,
-                ts:   x.updatedAt?.toDate() ?? new Date(),
+                temp:     x.temperature   ?? sim[d.id].temp,
+                fan:      x.fanOn         ?? sim[d.id].fan,
+                min:      x.minToday      ?? sim[d.id].min,
+                max:      x.maxToday      ?? sim[d.id].max,
+                ts:       x.updatedAt?.toDate() ?? new Date(),
+                lastSeen: x.lastSeen      ?? sim[d.id].lastSeen ?? null,
               };
             });
             renderDash();
@@ -966,7 +996,11 @@ const cfgUnits = {};
 UNITS.forEach(u => {
   cfgUnits[u.id] = {
     min: u.minOk, max: u.maxOk,
-    fanSchedule: u.fan ? { mode:'off', hourlyStart:0, hourlyDuration:10, fixedTimes:[] } : null
+    alarmEnabled: true,
+    standby: false,
+    fanSchedule:    u.fan ? { mode:'off', hourlyStart:0, hourlyDuration:10, fixedTimes:[] } : null,
+    fanOverride:    u.fan ? false : undefined,
+    fanOverrideUntil: u.fan ? 0 : undefined,
   };
 });
 let cfgSleep = 10; // minutes
@@ -991,6 +1025,12 @@ function fetchSettings(db) {
             fixedTimes:      (uc.fanSchedule.fixedTimes    || []).map(s => ({h:s.h||0,m:s.m||0,dur:s.dur||10})),
           };
         }
+        if (uc.alarmEnabled != null) cfgUnits[uid].alarmEnabled     = uc.alarmEnabled;
+        if (uc.standby      != null) cfgUnits[uid].standby          = uc.standby;
+        if (uc.fanOverride  != null && cfgUnits[uid].fanOverride !== undefined)
+          cfgUnits[uid].fanOverride = uc.fanOverride;
+        if (uc.fanOverrideUntil != null && cfgUnits[uid].fanOverrideUntil !== undefined)
+          cfgUnits[uid].fanOverrideUntil = uc.fanOverrideUntil;
       });
     }
     renderSettings();
@@ -1005,8 +1045,12 @@ function pushSettings() {
   const unitsPayload = {};
   UNITS.forEach(u => {
     const uc = cfgUnits[u.id];
-    const entry = { min: uc.min, max: uc.max };
-    if (u.fan && uc.fanSchedule) entry.fanSchedule = uc.fanSchedule;
+    const entry = { min: uc.min, max: uc.max, alarmEnabled: uc.alarmEnabled, standby: uc.standby };
+    if (u.fan && uc.fanSchedule) {
+      entry.fanSchedule     = uc.fanSchedule;
+      entry.fanOverride     = uc.fanOverride;
+      entry.fanOverrideUntil = uc.fanOverrideUntil;
+    }
     unitsPayload[u.id] = entry;
   });
   _settingsDb.collection('settings').doc('config').set({
@@ -1040,6 +1084,10 @@ function readSettingsFromDOM() {
     const maxEl = document.getElementById(`cfg-max-${u.id}`);
     if (minEl) uc.min = parseFloat(minEl.value) || uc.min;
     if (maxEl) uc.max = parseFloat(maxEl.value) || uc.max;
+    const alarmEl   = document.getElementById(`cfg-alarm-${u.id}`);
+    const standbyEl = document.getElementById(`cfg-standby-${u.id}`);
+    if (alarmEl)   uc.alarmEnabled = alarmEl.checked;
+    if (standbyEl) uc.standby      = standbyEl.checked;
     if (u.fan && uc.fanSchedule) {
       const modeEl = document.querySelector(`[data-fanmode="${u.id}"].active`);
       if (modeEl) uc.fanSchedule.mode = modeEl.dataset.mode;
@@ -1054,6 +1102,7 @@ function readSettingsFromDOM() {
 
 /* ── Render settings tab ── */
 function renderSettings() {
+  renderEspIndicators();
   // Sleep
   const sleepEl = document.getElementById('cfg-sleep');
   if (sleepEl) sleepEl.value = cfgSleep;
@@ -1063,10 +1112,51 @@ function renderSettings() {
   wrap.innerHTML = UNITS.map(u => unitAccHTML(u)).join('');
 }
 
+function renderEspIndicators() {
+  const el = document.getElementById('esp-indicators');
+  if (!el) return;
+  const now = Date.now();
+  // Box 1 — check most recent lastSeen across fridge1/2/3/butcherRoom
+  const box1ids = ['fridge1','fridge2','fridge3','butcherRoom'];
+  const box1ts  = box1ids.map(id => sim[id]?.lastSeen ?? 0).reduce((a,b) => Math.max(a,b), 0);
+  const box1online = box1ts > 0 && (now - box1ts * 1000) < 120000;
+  const box1age    = box1ts > 0 ? Math.round((now - box1ts*1000)/1000) : null;
+  const box1label  = box1online ? `Online · ${box1age}s ago` : (box1ts ? `Offline · ${Math.round((now-box1ts*1000)/60000)}m ago` : 'Never seen');
+  el.innerHTML = `
+    <div class="esp-row">
+      <span class="esp-dot ${box1online?'dot-on':'dot-off'}"></span>
+      <span class="esp-name">Box 1 — Fridge &amp; Butcher Room</span>
+      <span class="esp-age">${box1label}</span>
+    </div>
+    <div class="esp-row">
+      <span class="esp-dot dot-nc"></span>
+      <span class="esp-name">Box 2 — Freezers</span>
+      <span class="esp-age">Not configured</span>
+    </div>`;
+}
+
 function unitAccHTML(u) {
   const uc = cfgUnits[u.id];
   const fs = uc.fanSchedule;
-  const summary = `${uc.min}–${uc.max}°C${fs ? '  ·  Fan: '+fs.mode.toUpperCase() : ''}`;
+  const sbTag = uc.standby ? ' · STANDBY' : '';
+  const alTag = !uc.alarmEnabled ? ' · ALARM OFF' : '';
+  const summary = `${uc.min}–${uc.max}°C${fs ? '  ·  Fan: '+fs.mode.toUpperCase() : ''}${sbTag}${alTag}`;
+  // Fan override row (fan units only)
+  const now = Date.now();
+  const overrideActive = u.fan && uc.fanOverride && uc.fanOverrideUntil > now;
+  const overrideLabel  = overrideActive
+    ? `Override ON · until ${new Date(uc.fanOverrideUntil).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`
+    : 'Fan override off';
+  const overrideRow = u.fan ? `
+    <div class="urow">
+      <span class="urow-label">Manual fan</span>
+      <div class="urow-val urow-override">
+        <span class="override-lbl" id="ovr-lbl-${u.id}">${overrideLabel}</span>
+        ${overrideActive
+          ? `<button class="cfg-tog cfg-tog-on"  onclick="setFanOverride('${u.id}',false)">Cancel</button>`
+          : `<button class="cfg-tog"             onclick="setFanOverride('${u.id}',true)">Force ON (20 min)</button>`}
+      </div>
+    </div>` : '';
   return `<div class="unit-acc" id="acc-${u.id}">
   <div class="unit-acc-head" onclick="toggleAcc('${u.id}')">
     <span class="unit-acc-name">${u.name}</span>
@@ -1082,6 +1172,27 @@ function unitAccHTML(u) {
       <span class="urow-label">Max temp (°C)</span>
       <div class="urow-val"><input id="cfg-max-${u.id}" type="number" class="cfg-num" step="0.5" value="${uc.max}" onchange="updateAccSummary('${u.id}')"></div>
     </div>
+    <div class="urow">
+      <span class="urow-label">Alarm</span>
+      <div class="urow-val">
+        <label class="cfg-toggle">
+          <input type="checkbox" id="cfg-alarm-${u.id}" ${uc.alarmEnabled?'checked':''} onchange="updateAccSummary('${u.id}')">
+          <span class="cfg-toggle-track"></span>
+          <span class="cfg-toggle-lbl" id="alarm-lbl-${u.id}">${uc.alarmEnabled?'On':'Off'}</span>
+        </label>
+      </div>
+    </div>
+    <div class="urow">
+      <span class="urow-label">Standby mode</span>
+      <div class="urow-val">
+        <label class="cfg-toggle">
+          <input type="checkbox" id="cfg-standby-${u.id}" ${uc.standby?'checked':''} onchange="updateAccSummary('${u.id}')">
+          <span class="cfg-toggle-track"></span>
+          <span class="cfg-toggle-lbl" id="standby-lbl-${u.id}">${uc.standby?'On':'Off'}</span>
+        </label>
+      </div>
+    </div>
+    ${overrideRow}
     ${fs ? fanScheduleHTML(u.id, fs) : ''}
   </div>
 </div>`;
@@ -1178,6 +1289,38 @@ function deleteSlot(uid, i) {
   fs.fixedTimes.splice(i, 1);
   const container = document.getElementById(`fan-fixed-${uid}`);
   if (container) container.innerHTML = renderFanSlotsHTML(uid, fs.fixedTimes);
+}
+
+function setFanOverride(uid, on) {
+  const uc = cfgUnits[uid];
+  if (!uc || uc.fanOverride === undefined) return;
+  uc.fanOverride     = on;
+  uc.fanOverrideUntil = on ? Date.now() + 20 * 60 * 1000 : 0;
+  // Push immediately — don't wait for Save & Sync
+  if (_settingsDb) {
+    const payload = {};
+    UNITS.forEach(u => {
+      const c = cfgUnits[u.id];
+      const entry = { min: c.min, max: c.max, alarmEnabled: c.alarmEnabled, standby: c.standby };
+      if (u.fan && c.fanSchedule) {
+        entry.fanSchedule      = c.fanSchedule;
+        entry.fanOverride      = c.fanOverride;
+        entry.fanOverrideUntil = c.fanOverrideUntil;
+      }
+      payload[u.id] = entry;
+    });
+    _settingsDb.collection('settings').doc('config').set({
+      sleepSecs: cfgSleep * 60,
+      units: payload,
+    }).catch(e => setSettingsStatus('Override error: ' + e.message, true));
+  }
+  // Re-render this accordion
+  const acc = document.getElementById(`acc-${uid}`);
+  if (acc) {
+    const wasOpen = acc.classList.contains('open');
+    renderSettings();
+    if (wasOpen) document.getElementById(`acc-${uid}`)?.classList.add('open');
+  }
 }
 
 // ── TAB SWITCHING ──────────────────────────────────────
