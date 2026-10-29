@@ -897,6 +897,7 @@ UNITS.forEach(u => {
 function simTick() {
   UNITS.forEach(u => {
     const s = sim[u.id];
+    if (s.temp == null) return;   // Bug 6 fix: skip null temps to avoid NaN
     s.temp += (Math.random()-.47)*.25;
     const lo = u.simBase-1.8, hi = u.simBase+1.8;
     if (s.temp < lo) s.temp = lo + Math.random()*.3;
@@ -916,9 +917,14 @@ function isStale(d) {
 }
 
 function status(temp, u, d) {
-  if (temp==null || isStale(d)) return 'offline';
-  if (temp < u.minOk-4 || temp > u.maxOk+4) return 'alert';
-  if (temp < u.minOk   || temp > u.maxOk)   return 'warn';
+  if (isStale(d)) return 'offline';
+  if (temp==null) return 'nosensor';
+  if (cfgUnits[u.id]?.standby) return 'standby';          // Bug 7 fix: standby suppresses alarms
+  const alarmOn = cfgUnits[u.id]?.alarmEnabled !== false;
+  const min = cfgUnits[u.id]?.min ?? u.minOk;             // Bug 1 fix: use live settings, not hardcoded
+  const max = cfgUnits[u.id]?.max ?? u.maxOk;
+  if (alarmOn && (temp < min-4 || temp > max+4)) return 'alert';
+  if (alarmOn && (temp < min   || temp > max))   return 'warn';
   return 'ok';
 }
 
@@ -935,17 +941,19 @@ function fmtClock(d) {
    RENDER — DASHBOARD CARD
 ═══════════════════════════════════════════════════════════ */
 function cardHTML(u, d) {
-  const s      = status(d?.temp, u, d);
-  const offline = s === 'offline';
-  const lbl    = {ok:'OK',warn:'WARM',alert:'ALERT',offline:'OFFLINE'}[s];
-  const bc     = {ok:'b-ok',warn:'b-warn',alert:'b-alert',offline:'b-off'}[s];
-  const rng    = u.minOk<0 ? `${u.minOk}°C to ${u.maxOk}°C` : `+${u.minOk}°C to +${u.maxOk}°C`;
-  const fanBadge = (!offline && u.fan)
+  const s        = status(d?.temp, u, d);
+  const inactive = s === 'offline' || s === 'nosensor' || s === 'standby';
+  const lbl      = {ok:'OK',warn:'WARM',alert:'ALERT',offline:'OFFLINE',nosensor:'NO SENSOR',standby:'STANDBY'}[s];
+  const bc       = {ok:'b-ok',warn:'b-warn',alert:'b-alert',offline:'b-off',nosensor:'b-off',standby:'b-off'}[s];
+  const min      = cfgUnits[u.id]?.min ?? u.minOk;        // Bug 1 fix: use live settings
+  const max      = cfgUnits[u.id]?.max ?? u.maxOk;
+  const rng      = min<0 ? `${min}°C to ${max}°C` : `+${min}°C to +${max}°C`;
+  const fanBadge = (!inactive && u.fan)
     ? `<span class="badge ${d?.fan?'b-fan':'b-nofan'}">${d?.fan?'⬢ FAN ON':'⬡ FAN OFF'}</span>` : '';
-  const tempDisplay = offline ? '---' : fmtT(d?.temp);
-  const mm = (!offline && d) ? `<div class="unit-minmax">Today  Low ${fmtT(d.min)}°  ·  High ${fmtT(d.max)}°</div>` : '';
+  const tempDisplay = inactive ? '---' : fmtT(d?.temp);
+  const mm = (!inactive && d) ? `<div class="unit-minmax">Today  Low ${fmtT(d.min)}°  ·  High ${fmtT(d.max)}°</div>` : '';
   return `
-<div class="unit-card s-${s}">
+<div class="unit-card s-${(s === 'nosensor' || s === 'standby') ? 'offline' : s}">
   <div class="unit-name">${u.name}</div>
   <div class="unit-temp">${tempDisplay}<sup>°C</sup></div>
   <div class="unit-target">Target ${rng}</div>
@@ -983,15 +991,15 @@ function renderPi() {
   grid.innerHTML = UNITS.map(u => {
     const d = sim[u.id];
     const s = status(d?.temp, u, d);
-    const offline = s === 'offline';
-    const bc = {ok:'b-ok',warn:'b-warn',alert:'b-alert',offline:'b-off'}[s];
-    const lbl = {ok:'OK',warn:'WARM',alert:'ALERT',offline:'OFFLINE'}[s];
-    const fanBadge = (!offline && u.fan)
+    const inactive = s === 'offline' || s === 'nosensor';
+    const bc = {ok:'b-ok',warn:'b-warn',alert:'b-alert',offline:'b-off',nosensor:'b-off'}[s];
+    const lbl = {ok:'OK',warn:'WARM',alert:'ALERT',offline:'OFFLINE',nosensor:'NO SENSOR'}[s];
+    const fanBadge = (!inactive && u.fan)
       ? `<span class="pi-badge ${d?.fan?'b-fan':'b-nofan'}">${d?.fan?'FAN ●':'FAN ○'}</span>` : '';
     return `
-<div class="pi-card s-${s}">
+<div class="pi-card s-${s === 'nosensor' ? 'offline' : s}">
   <div class="pi-name">${u.name}</div>
-  <div class="pi-temp">${offline ? '---' : fmtT(d?.temp)}°</div>
+  <div class="pi-temp">${inactive ? '---' : fmtT(d?.temp)}°</div>
   <div class="pi-badges">
     <span class="pi-badge ${bc}">${lbl}</span>${fanBadge}
   </div>
@@ -1061,7 +1069,7 @@ if (IS_PI) {
               if (!sim[d.id]) return;
               const x = d.data();
               sim[d.id] = {
-                temp:     x.temperature   ?? sim[d.id].temp,
+                temp:     'temperature' in x ? x.temperature : null,  // Bug 2 fix: absent field → null (NO SENSOR), not demo seed
                 fan:      x.fanOn         ?? sim[d.id].fan,
                 min:      x.minToday      ?? sim[d.id].min,
                 max:      x.maxToday      ?? sim[d.id].max,
@@ -1121,7 +1129,8 @@ let cfgSleep = 10; // minutes
 /* Called from startLiveData once db is available */
 function fetchSettings(db) {
   _settingsDb = db;
-  db.collection('settings').doc('config').get().then(doc => {
+  // Bug 4 fix: use onSnapshot so settings changes apply immediately without a page reload
+  db.collection('settings').doc('config').onSnapshot(doc => {
     if (!doc.exists) { renderSettings(); return; }
     const d = doc.data();
     if (d.sleepSecs != null) cfgSleep = Math.round(d.sleepSecs / 60);
@@ -1147,7 +1156,7 @@ function fetchSettings(db) {
       });
     }
     renderSettings();
-  }).catch(() => renderSettings());
+  }, () => renderSettings());
 }
 
 function pushSettings() {
