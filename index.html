@@ -910,8 +910,13 @@ function simTick() {
 /* ═══════════════════════════════════════════════════════════
    HELPERS
 ═══════════════════════════════════════════════════════════ */
-function status(temp, u) {
-  if (temp==null) return 'offline';
+function isStale(d) {
+  if (!d?.lastSeen) return true;
+  return (Date.now() - d.lastSeen * 1000) > 120000; // >2 min = stale
+}
+
+function status(temp, u, d) {
+  if (temp==null || isStale(d)) return 'offline';
   if (temp < u.minOk-4 || temp > u.maxOk+4) return 'alert';
   if (temp < u.minOk   || temp > u.maxOk)   return 'warn';
   return 'ok';
@@ -930,17 +935,19 @@ function fmtClock(d) {
    RENDER — DASHBOARD CARD
 ═══════════════════════════════════════════════════════════ */
 function cardHTML(u, d) {
-  const s   = status(d?.temp, u);
-  const lbl = {ok:'OK',warn:'WARM',alert:'ALERT',offline:'OFFLINE'}[s];
-  const bc  = {ok:'b-ok',warn:'b-warn',alert:'b-alert',offline:'b-off'}[s];
-  const rng = u.minOk<0 ? `${u.minOk}°C to ${u.maxOk}°C` : `+${u.minOk}°C to +${u.maxOk}°C`;
-  const fanBadge = u.fan
+  const s      = status(d?.temp, u, d);
+  const offline = s === 'offline';
+  const lbl    = {ok:'OK',warn:'WARM',alert:'ALERT',offline:'OFFLINE'}[s];
+  const bc     = {ok:'b-ok',warn:'b-warn',alert:'b-alert',offline:'b-off'}[s];
+  const rng    = u.minOk<0 ? `${u.minOk}°C to ${u.maxOk}°C` : `+${u.minOk}°C to +${u.maxOk}°C`;
+  const fanBadge = (!offline && u.fan)
     ? `<span class="badge ${d?.fan?'b-fan':'b-nofan'}">${d?.fan?'⬢ FAN ON':'⬡ FAN OFF'}</span>` : '';
-  const mm = d ? `<div class="unit-minmax">Today  Low ${fmtT(d.min)}°  ·  High ${fmtT(d.max)}°</div>` : '';
+  const tempDisplay = offline ? '---' : fmtT(d?.temp);
+  const mm = (!offline && d) ? `<div class="unit-minmax">Today  Low ${fmtT(d.min)}°  ·  High ${fmtT(d.max)}°</div>` : '';
   return `
 <div class="unit-card s-${s}">
   <div class="unit-name">${u.name}</div>
-  <div class="unit-temp">${fmtT(d?.temp)}<sup>°C</sup></div>
+  <div class="unit-temp">${tempDisplay}<sup>°C</sup></div>
   <div class="unit-target">Target ${rng}</div>
   <div class="badge-row">
     <span class="badge ${bc}">${lbl}</span>${fanBadge}
@@ -953,8 +960,8 @@ function renderDash() {
     const el = document.getElementById('grid-'+sec);
     if (el) el.innerHTML = UNITS.filter(u=>u.section===sec).map(u=>cardHTML(u,sim[u.id])).join('');
   });
-  const alerts = UNITS.filter(u => cfgUnits[u.id]?.alarmEnabled !== false && status(sim[u.id]?.temp,u)==='alert').length;
-  const warns  = UNITS.filter(u => cfgUnits[u.id]?.alarmEnabled !== false && status(sim[u.id]?.temp,u)==='warn').length;
+  const alerts = UNITS.filter(u => cfgUnits[u.id]?.alarmEnabled !== false && status(sim[u.id]?.temp,u,sim[u.id])==='alert').length;
+  const warns  = UNITS.filter(u => cfgUnits[u.id]?.alarmEnabled !== false && status(sim[u.id]?.temp,u,sim[u.id])==='warn').length;
   const lbl = document.getElementById('h-status-lbl');
   if (lbl) {
     if (alerts) lbl.innerHTML = `<span class="col-alert">⚠ ${alerts} ALERT${alerts>1?'S':''}</span>`;
@@ -975,15 +982,16 @@ function renderPi() {
   if (!grid) return;
   grid.innerHTML = UNITS.map(u => {
     const d = sim[u.id];
-    const s = status(d?.temp, u);
+    const s = status(d?.temp, u, d);
+    const offline = s === 'offline';
     const bc = {ok:'b-ok',warn:'b-warn',alert:'b-alert',offline:'b-off'}[s];
     const lbl = {ok:'OK',warn:'WARM',alert:'ALERT',offline:'OFFLINE'}[s];
-    const fanBadge = u.fan
+    const fanBadge = (!offline && u.fan)
       ? `<span class="pi-badge ${d?.fan?'b-fan':'b-nofan'}">${d?.fan?'FAN ●':'FAN ○'}</span>` : '';
     return `
 <div class="pi-card s-${s}">
   <div class="pi-name">${u.name}</div>
-  <div class="pi-temp">${fmtT(d?.temp)}°</div>
+  <div class="pi-temp">${offline ? '---' : fmtT(d?.temp)}°</div>
   <div class="pi-badges">
     <span class="pi-badge ${bc}">${lbl}</span>${fanBadge}
   </div>
