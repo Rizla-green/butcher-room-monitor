@@ -882,7 +882,7 @@ const UNITS = [
   { id:'fridge3',  name:'Fridge 3',      section:'fridges',  minOk:1,   maxOk:5,   simBase: 3.6,  fan:true  },
   { id:'freezer1', name:'Freezer 1',     section:'freezers', minOk:-23, maxOk:-16, simBase:-19.5, fan:false },
   { id:'freezer2', name:'Freezer 2',     section:'freezers', minOk:-23, maxOk:-16, simBase:-20.1, fan:false },
-  { id:'butcherRoom',  name:'Butcher Room',  section:'areas',    minOk:3,   maxOk:8,   simBase: 5.8,  fan:true  },
+  { id:'butcherRoom',  name:'Butcher Room',  section:'areas',    minOk:3,   maxOk:8,   simBase: 5.8,  fan:false },
 ];
 
 /* ═══════════════════════════════════════════════════════════
@@ -953,8 +953,8 @@ function renderDash() {
     const el = document.getElementById('grid-'+sec);
     if (el) el.innerHTML = UNITS.filter(u=>u.section===sec).map(u=>cardHTML(u,sim[u.id])).join('');
   });
-  const alerts = UNITS.filter(u=>status(sim[u.id]?.temp,u)==='alert').length;
-  const warns  = UNITS.filter(u=>status(sim[u.id]?.temp,u)==='warn').length;
+  const alerts = UNITS.filter(u => cfgUnits[u.id]?.alarmEnabled !== false && status(sim[u.id]?.temp,u)==='alert').length;
+  const warns  = UNITS.filter(u => cfgUnits[u.id]?.alarmEnabled !== false && status(sim[u.id]?.temp,u)==='warn').length;
   const lbl = document.getElementById('h-status-lbl');
   if (lbl) {
     if (alerts) lbl.innerHTML = `<span class="col-alert">⚠ ${alerts} ALERT${alerts>1?'S':''}</span>`;
@@ -1227,6 +1227,12 @@ function renderEspIndicators() {
   const box1online = box1ts > 0 && (now - box1ts * 1000) < 120000;
   const box1age    = box1ts > 0 ? Math.round((now - box1ts*1000)/1000) : null;
   const box1label  = box1online ? `Online · ${box1age}s ago` : (box1ts ? `Offline · ${Math.round((now-box1ts*1000)/60000)}m ago` : 'Never seen');
+  // Box 2 — check most recent lastSeen across freezer1/freezer2
+  const box2ids = ['freezer1','freezer2'];
+  const box2ts  = box2ids.map(id => sim[id]?.lastSeen ?? 0).reduce((a,b) => Math.max(a,b), 0);
+  const box2online = box2ts > 0 && (now - box2ts * 1000) < 120000;
+  const box2age    = box2ts > 0 ? Math.round((now - box2ts*1000)/1000) : null;
+  const box2label  = box2online ? `Online · ${box2age}s ago` : (box2ts ? `Offline · ${Math.round((now-box2ts*1000)/60000)}m ago` : 'Never seen');
   el.innerHTML = `
     <div class="esp-row">
       <span class="esp-dot ${box1online?'dot-on':'dot-off'}"></span>
@@ -1234,9 +1240,9 @@ function renderEspIndicators() {
       <span class="esp-age">${box1label}</span>
     </div>
     <div class="esp-row">
-      <span class="esp-dot dot-nc"></span>
+      <span class="esp-dot ${box2online?'dot-on':'dot-off'}"></span>
       <span class="esp-name">Box 2 — Freezers</span>
-      <span class="esp-age">Not configured</span>
+      <span class="esp-age">${box2label}</span>
     </div>`;
 }
 
