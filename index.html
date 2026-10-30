@@ -894,19 +894,6 @@ UNITS.forEach(u => {
   sim[u.id] = { temp:t, fan:u.fan?true:undefined, min:t-.3, max:t+.3, ts:new Date() };
 });
 
-function simTick() {
-  UNITS.forEach(u => {
-    const s = sim[u.id];
-    if (s.temp == null) return;   // Bug 6 fix: skip null temps to avoid NaN
-    s.temp += (Math.random()-.47)*.25;
-    const lo = u.simBase-1.8, hi = u.simBase+1.8;
-    if (s.temp < lo) s.temp = lo + Math.random()*.3;
-    if (s.temp > hi) s.temp = hi - Math.random()*.3;
-    s.min = Math.min(s.min, s.temp);
-    s.max = Math.max(s.max, s.temp);
-    s.ts  = new Date();
-  });
-}
 
 /* ═══════════════════════════════════════════════════════════
    HELPERS
@@ -1086,8 +1073,6 @@ if (IS_PI) {
         } catch(e) {
           fallbackSim();
         }
-        /* sim ticks as backup until real sensors arrive */
-        setInterval(() => { simTick(); renderDash(); }, 30000);
       }
 
     } catch(e) {
@@ -1105,7 +1090,6 @@ if (IS_PI) {
     if (sd) sd.classList.add('demo');
     if (sm) sm.textContent = 'Demo mode — simulated data';
     renderDash();
-    setInterval(() => { simTick(); renderDash(); }, 30000);
   }
 }
 
